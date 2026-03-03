@@ -102,15 +102,18 @@ def run_bls(
     max_period: float = 30.0,
 ) -> BLSResult:
     """
-    Run BLS period search on a preprocessed light curve.
+    Run BLS (Box Least Squares) period search on a preprocessed light curve.
 
-    Uses astropy's BoxLeastSquares directly for full control over
-    the period and duration grids, avoiding the combinatorial explosion
-    that occurs with lightkurve's wrapper on long baselines.
+    BLS works by trying every combination of period and duration in a grid,
+    and for each combination phase-folding the light curve and fitting a
+    box-shaped dip. The "power" at each period is basically how much
+    better a box model fits the data compared to a flat line. A sharp peak
+    in the power spectrum at some period P means the data has a repeating
+    box-shaped dip every P days — the signature of a transiting planet.
 
     Period grid: 100,000 linearly-spaced frequencies converted to periods.
-    Linear frequency spacing is standard for BLS — it ensures uniform
-    sampling of transit repetition rate rather than orbital period.
+    Linear frequency spacing ensures uniform sampling of transit repetition
+    rate rather than orbital period.
 
     Duration grid: 5 values from 1.2 to 12 hours. Missing the exact
     duration only weakens the signal slightly; missing the period loses
@@ -138,62 +141,27 @@ def run_bls(
         f"{len(lc.time)} data points"
     )
 
-    # Build lightkurve LightCurve for phase folding later
-    lc_lk = lk.LightCurve(
-        time=lc.time,
-        flux=lc.flux,
-        flux_err=lc.flux_err,
-    )
+    lc_lk = lk.LightCurve(time=lc.time, flux=lc.flux, flux_err=lc.flux_err)
 
-    # --- Period grid ---
-    # Sample linearly in frequency (1/period), then convert to period.
-    # This is the correct sampling strategy for BLS: uniform in frequency
-    # means we spend equal effort on each transit-rate hypothesis.
-    # 100,000 points gives fine resolution without combinatorial explosion.
+    # Linear in frequency = uniform sampling of transit repetition rate
     period_grid = 1.0 / np.linspace(1.0 / max_period, 1.0 / min_period, 100_000)
+    durations = np.linspace(0.05, 0.5, 5)  # days: 1.2hr to 12hr
 
-    # --- Duration grid ---
-    # 5 durations from 1.2 to 12 hours covers the vast majority of
-    # real exoplanet transits. Coarse is fine here — a wrong duration
-    # just weakens the peak, it doesn't move it to the wrong period.
-    durations = np.linspace(0.05, 0.5, 5)  # days (0.05d = 1.2hr, 0.5d = 12hr)
-
-    # --- Run BLS directly via astropy ---
     model = BoxLeastSquares(lc_lk.time, lc_lk.flux, lc_lk.flux_err)
     pg_results = model.power(period_grid, durations)
 
-    # --- Extract best solution ---
     best_idx = np.argmax(pg_results.power)
     best_period = pg_results.period[best_idx].value
     best_duration = pg_results.duration[best_idx].value
     best_t0 = float(pg_results.transit_time[best_idx].value)
 
-    # import matplotlib.pyplot as plt
-    #
-    # plt.figure(figsize=(10, 5))
-    # plt.plot(pg_results.period, pg_results.power, color='black', lw=0.5)
-    # plt.axvline(best_period, color='red', linestyle='--', alpha=0.5, label=f'Best: {best_period:.2f}d')
-    # plt.xlabel("Period (days)")
-    # plt.ylabel("BLS Power")
-    # plt.title(f"BLS Power Spectrum: {lc.target_name}")
-    # plt.legend()
-    # plt.show()
-
-
-    periods = np.asarray(pg_results.period)
-    power = np.asarray(pg_results.power)
-
-    # --- Phase fold at best period ---
-    # Collapses all transits on top of each other by dividing time
-    # by the period. Every transit stacks at phase 0, dramatically
-    # boosting SNR over any individual transit.
+    # Phase fold: stack all transits at phase 0 to boost SNR
     folded = lc_lk.fold(period=best_period, epoch_time=best_t0)
     folded_time = np.asarray(folded.time.value)
     folded_flux = np.asarray(folded.flux.value)
     folded_flux_err = np.asarray(folded.flux_err.value)
 
-    # --- Transit depth and uncertainty ---
-    # Mask to in-transit points: within half a transit duration of phase 0.
+    # In-transit mask: points within half a transit duration of phase 0
     half_dur = best_duration / (2 * best_period)
     in_transit = np.abs(folded_time) < half_dur
 
@@ -204,20 +172,16 @@ def run_bls(
         in_flux = folded_flux[in_transit]
         in_err = folded_flux_err[in_transit]
         transit_depth = float(1.0 - np.mean(in_flux))
-        # Propagate per-point errors through the mean
         depth_uncertainty = float(np.sqrt(np.sum(in_err ** 2)) / in_transit.sum())
 
-    # --- SDE (Signal Detection Efficiency) ---
-    # How many standard deviations above the noise floor is our peak?
-    # Convention: SDE > 7 = candidate worth examining.
-    power_mean = np.mean(power)
+    periods = np.asarray(pg_results.period)
+    power = np.asarray(pg_results.power)
     power_std = np.std(power)
-    sde = float((power.max() - power_mean) / power_std) if power_std > 0 else 0.0
 
-    # --- SNR ---
+    # SDE: sigma above noise floor. Convention: > 7 = candidate worth examining
+    sde = float((power.max() - np.mean(power)) / power_std) if power_std > 0 else 0.0
     snr = float(transit_depth / depth_uncertainty) if np.isfinite(depth_uncertainty) and depth_uncertainty > 0 else 0.0
 
-    # --- Aliases and reliability assessment ---
     aliases = _find_aliases(periods, power, best_period)
     is_reliable, flags = _assess_reliability(
         sde=sde,
@@ -316,75 +280,38 @@ def _assess_reliability(
     lc: LightCurveData,
 ) -> tuple[bool, list[str]]:
     """
-    Honest reliability assessment of a BLS detection.
-
-    Returns a boolean and a list of human-readable flags explaining
-    any concerns. We err toward flagging rather than overclaiming.
+    Assess detection reliability. Errs toward flagging rather than overclaiming.
+    Returns (is_reliable, list of concern strings).
     """
     flags = []
 
-    # SDE threshold: the conventional minimum for a credible detection
     if sde < 7.0:
-        flags.append(f"SDE={sde:.1f} is below the detection threshold of 7.0")
-
-    # SNR threshold
+        flags.append(f"SDE={sde:.1f} below detection threshold of 7.0")
     if snr < 5.0:
-        flags.append(f"SNR={snr:.1f} is low — depth is not well-constrained")
-
-    # Depth sanity check: transits should be between 10ppm and 5%
-    # Smaller than 10ppm is below Kepler's noise floor
-    # Larger than 5% is almost certainly an eclipsing binary, not a planet
+        flags.append(f"SNR={snr:.1f} — depth not well-constrained")
+    if transit_depth <= 0:
+        flags.append("Negative depth — brightening event, not a transit")
     if transit_depth < 1e-5:
-        flags.append("Transit depth < 10ppm — likely noise, not a real transit")
+        flags.append("Depth < 10ppm — below Kepler noise floor, likely not real")
     if transit_depth > 0.05:
-        flags.append(
-            f"Transit depth={transit_depth:.1%} > 5% — "
-            "may be an eclipsing binary rather than a planet"
-        )
-
-    # Duration sanity check
-    # Transit duration > 0.5 * period is physically impossible
+        flags.append(f"Depth={transit_depth:.1%} > 5% — probable eclipsing binary")
     if best_duration > 0.5 * best_period:
-        flags.append("Transit duration > half the period — unphysical, likely a false positive")
-
-    # Minimum in-transit points
+        flags.append("Duration > half the period — unphysical, likely false positive")
     if n_transit_points < 5:
-        flags.append(
-            f"Only {n_transit_points} in-transit data points — "
-            "depth measurement is poorly constrained"
-        )
-
-    # Alias warning
+        flags.append(f"Only {n_transit_points} in-transit points — depth poorly constrained")
+    if not np.isfinite(depth_uncertainty):
+        flags.append("Depth uncertainty unmeasurable — insufficient in-transit points")
     if aliases:
-        flags.append(
-            f"Strong aliases detected at periods: {aliases} days — "
-            "verify this is the true period, not a harmonic"
-        )
-
-    # Edge period warning: if best period is near the search boundary,
-    # the algorithm may be running out of search space
+        flags.append(f"Aliases at {aliases} days — verify this is the true period, not a harmonic")
     if best_period < 0.6:
         flags.append("Period near minimum search boundary — may be truncated")
 
-    if not np.isfinite(depth_uncertainty):
-        flags.append("Could not measure depth uncertainty — insufficient in-transit points")
-
-    if transit_depth <= 0:
-        flags.append(
-            "Transit depth is negative — this is a brightening, not a transit. Almost certainly noise or a systematic artifact.")
-
-    # Baseline coverage: we need at least 3 transits for confidence
     baseline_days = lc.time[-1] - lc.time[0]
-    n_expected_transits = baseline_days / best_period
-    if n_expected_transits < 3:
-        flags.append(
-            f"Only ~{n_expected_transits:.0f} expected transits in this dataset — "
-            "need at least 3 for a reliable detection"
-        )
+    n_expected = baseline_days / best_period
+    if n_expected < 3:
+        flags.append(f"Only ~{n_expected:.0f} expected transits — need at least 3")
 
-    is_reliable = len(flags) == 0
-    return is_reliable, flags
-
+    return len(flags) == 0, flags
 
 
 
