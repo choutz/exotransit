@@ -3,16 +3,8 @@ import numpy as np
 from pathlib import Path
 from exotransit.pipeline.fetch import fetch_stitched_light_curve, list_available_observations
 from exotransit.detection.search import run_bls, find_all_planets
-import logging
-from tqdm import tqdm
 
 CACHE_DIR = Path(__file__).parent / ".lc_cache"
-# logging.basicConfig(
-#     level=logging.INFO,
-#     format="%(message)s",
-#     handlers=[logging.StreamHandler()]
-# )
-# logging.getLogger().handlers[0].emit = lambda record: tqdm.write(logging.getLogger().handlers[0].format(record))
 
 
 def _cache_key(target: str, mission: str, max_quarters: int) -> str:

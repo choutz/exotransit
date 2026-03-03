@@ -64,7 +64,7 @@ class BLSResult:
     folded_time : np.ndarray
         Phase-folded time array for plotting the transit shape.
         "Phase folding" means collapsing all transits on top of each
-        other by dividing time by the period. If the period is right,
+        other by dividing time offset from t0 by the period. If the period is right,
         all transits stack and the signal gets much cleaner.
     folded_flux : np.ndarray
         Phase-folded flux values.
@@ -155,6 +155,8 @@ def run_bls(
 
     model = BoxLeastSquares(lc_lk.time, lc_lk.flux, lc_lk.flux_err)
     pg_results = model.power(period_grid, durations)
+    periods = np.asarray(pg_results.period)
+    power = np.asarray(pg_results.power)
 
     best_idx = np.argmax(pg_results.power)
     best_period = pg_results.period[best_idx].value
@@ -184,8 +186,6 @@ def run_bls(
         transit_depth = float(1.0 - np.mean(in_flux))
         depth_uncertainty = float(np.sqrt(np.sum(in_err ** 2)) / in_transit.sum())
 
-    periods = np.asarray(pg_results.period)
-    power = np.asarray(pg_results.power)
     power_std = np.std(power)
 
     # SDE: sigma above noise floor. Convention: > 7 = candidate worth examining
@@ -201,7 +201,7 @@ def run_bls(
         best_period=best_period,
         best_duration=best_duration,
         n_transit_points=int(in_transit.sum()),
-        # aliases=aliases,
+        aliases=aliases,
         lc=lc,
     )
 
@@ -268,7 +268,7 @@ def find_all_planets(
 
     with tqdm(total=max_planets, desc="Searching for planets", unit="planet") as pbar:
         for i in range(max_planets):
-            pbar.set_description(f"Searching for planet {i + 1}/{max_planets}")
+            pbar.set_description(f"Searching for planet {i + 1}")
 
             current_lc = LightCurveData(
                 time=np.asarray(lc_lk.time.value),
@@ -288,8 +288,8 @@ def find_all_planets(
                 max_period_grid_points=max_period_grid_points,
             )
 
-            if result.sde < 5.0:
-                pbar.set_description(f"SDE {result.sde} too low after {i} planet(s), stopping")
+            if not result.is_reliable:
+                pbar.set_description(f"Stopping after {i} reliable planet(s)")
                 pbar.update(max_planets - i)
                 break
 
@@ -317,10 +317,6 @@ def _find_aliases(
 ) -> list[float]:
     """
     Find alias periods in the BLS power spectrum.
-
-    An alias is a spurious peak caused by integer harmonics of the
-    true period. We check P/2, P/3, 2P, 3P and flag any that have
-    power above alias_threshold * peak_power.
 
     Parameters
     ----------
@@ -367,7 +363,7 @@ def _assess_reliability(
         best_period: float,
         best_duration: float,
         n_transit_points: int,
-        # aliases: list,
+        aliases: list,
         lc: LightCurveData,
 ) -> tuple[bool, list[str]]:
     """
@@ -378,7 +374,7 @@ def _assess_reliability(
     # Check signal strength: NASA's Kepler pipeline uses a 7.1 sigma floor
     if sde < 7.0:
         flags.append("low signal detection efficiency")
-    if snr < 5.0:
+    if snr < 7.1:
         flags.append("low signal to noise ratio")
 
     # Check data coverage: Confirming a period requires seeing it repeat
@@ -402,6 +398,12 @@ def _assess_reliability(
         flags.append("critically low point count in transit")
     elif coverage_ratio < 0.7:
         flags.append(f"poor transit coverage: {int(coverage_ratio * 100)}% of expected points captured")
+
+    if aliases:
+        flags.append(f"strong aliases at {aliases} days — verify true period")
+
+    if transit_depth <= 0:
+        flags.append("negative depth — brightening event, not a transit")
 
     # Reliability is true only if the candidate clears all hurdles
     is_reliable = len(flags) == 0
