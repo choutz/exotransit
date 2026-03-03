@@ -62,6 +62,8 @@ def fetch_light_curve(
 ) -> LightCurveData:
     """
     Fetch and preprocess a light curve from NASA MAST archive.
+    Note: For transit detection, use fetch_stitched_light_curve() instead.
+    Single quarters often lack sufficient transits for reliable BLS detection.
 
     Parameters
     ----------
@@ -201,6 +203,155 @@ def fetch_light_curve(
         mission=mission_name,
         target_name=target,
         sector_or_quarter=sector_num,
+        raw_time=raw_time,
+        raw_flux=raw_flux,
+    )
+
+
+def fetch_stitched_light_curve(
+    target: str,
+    mission: str = "Kepler",
+    max_quarters: int = 8,
+    exptime: str = "long",
+) -> LightCurveData:
+    """
+    Download and stitch multiple Kepler quarters (or TESS sectors)
+    into a single long baseline light curve.
+
+    Stitching is necessary because a single quarter (~90 days) often
+    doesn't contain enough transits for reliable BLS detection. With
+    8 quarters (~2 years) you get ~8x more transits, dramatically
+    improving signal-to-noise.
+
+    The key challenge is normalization: each quarter has a slightly
+    different baseline flux because the star falls on different pixels
+    after each 90-degree spacecraft rotation. We normalize each quarter
+    to median=1.0 before concatenating so the jumps don't confuse BLS.
+
+    Parameters
+    ----------
+    target : str
+        Star name or ID.
+    mission : str
+        'Kepler', 'K2', or 'TESS'.
+    max_quarters : int
+        Maximum number of quarters/sectors to download and stitch.
+        More = better detection but slower download.
+        8 quarters (~2 years) is a good balance.
+    exptime : str
+        'long' (30-min cadence) or 'short' (1-min cadence).
+
+    Returns
+    -------
+    LightCurveData
+        Stitched, cleaned, normalized light curve with full baseline.
+    """
+    logger.info(f"Fetching stitched light curve for {target}, up to {max_quarters} quarters")
+
+    # --- Search for all available observations ---
+    search_result = lk.search_lightcurve(
+        target,
+        mission=mission,
+        exptime=exptime,
+    )
+
+    if len(search_result) == 0:
+        raise ValueError(f"No light curves found for '{target}'.")
+
+    # Limit to max_quarters
+    n_to_download = min(max_quarters, len(search_result))
+    logger.info(f"Downloading {n_to_download} of {len(search_result)} available quarters")
+
+    # --- Download each quarter individually ---
+    # We download one at a time so we can handle failures gracefully.
+    # Some quarters are missing or corrupted — we skip those rather
+    # than failing the whole request.
+    light_curves = []
+    raw_time_list = []
+    raw_flux_list = []
+
+    for i in range(n_to_download):
+        try:
+            lc = search_result[i].download()
+            if lc is None:
+                logger.warning(f"Quarter {i} download returned None, skipping")
+                continue
+
+            # Store raw data before processing
+            raw_time_list.append(lc.time.value)
+            raw_flux_list.append(lc.flux.value)
+
+            # Clean each quarter independently
+            lc = lc.remove_nans().remove_outliers(sigma=5.0)
+
+            # Flatten each quarter independently
+            # This is crucial: we detrend within each quarter separately
+            # because stellar variability and instrument drift are
+            # continuous within a quarter but discontinuous at boundaries.
+            cadence_days = np.nanmedian(np.diff(lc.time.value))
+            window_points = int(0.5 / cadence_days)
+            if window_points % 2 == 0:
+                window_points += 1
+            window_points = max(window_points, 3)
+            lc = lc.flatten(window_length=window_points)
+
+            # Normalize each quarter to median=1.0 independently
+            # This removes the inter-quarter flux jumps caused by
+            # spacecraft rotations landing the star on different pixels.
+            lc = lc.normalize()
+
+            light_curves.append(lc)
+            logger.info(f"  Quarter {i+1}/{n_to_download}: {len(lc.time)} points")
+
+        except Exception as e:
+            logger.warning(f"Quarter {i} failed ({e}), skipping")
+            continue
+
+    if len(light_curves) == 0:
+        raise ValueError(f"All quarters failed to download for '{target}'.")
+
+    # --- Stitch quarters together ---
+    # lightkurve's collection.stitch() concatenates and does a final
+    # normalization pass to minimize remaining discontinuities.
+    collection = lk.LightCurveCollection(light_curves)
+    stitched = collection.stitch()
+
+    # --- Extract final arrays ---
+    time = np.asarray(stitched.time.value, dtype=float)
+    flux = np.asarray(stitched.flux.value, dtype=float)
+
+    if stitched.flux_err is not None:
+        flux_err = np.asarray(stitched.flux_err.value, dtype=float)
+        median_err = np.nanmedian(flux_err)
+        flux_err = np.where(np.isnan(flux_err), median_err, flux_err)
+    else:
+        flux_err = np.full_like(flux, np.std(flux))
+        logger.warning("No flux_err after stitching, estimating from scatter.")
+
+    # Combine raw arrays for diagnostic plotting
+    raw_time = np.concatenate(raw_time_list) if raw_time_list else time
+    raw_flux = np.concatenate(raw_flux_list) if raw_flux_list else flux
+
+    # Sort by time (quarters should already be ordered but let's be safe)
+    sort_idx = np.argsort(time)
+    time = time[sort_idx]
+    flux = flux[sort_idx]
+    flux_err = flux_err[sort_idx]
+
+    baseline_days = time[-1] - time[0]
+    logger.info(
+        f"Stitched {len(light_curves)} quarters: "
+        f"{len(time)} total points, "
+        f"{baseline_days:.1f} day baseline"
+    )
+
+    return LightCurveData(
+        time=time,
+        flux=flux,
+        flux_err=flux_err,
+        mission=mission,
+        target_name=target,
+        sector_or_quarter=len(light_curves),
         raw_time=raw_time,
         raw_flux=raw_flux,
     )
