@@ -22,6 +22,7 @@ from dataclasses import dataclass, field
 from exotransit.pipeline.fetch import LightCurveData
 import lightkurve as lk
 from astropy.timeseries import BoxLeastSquares
+from tqdm import tqdm
 
 logger = logging.getLogger(__name__)
 
@@ -100,6 +101,7 @@ def run_bls(
     lc: LightCurveData,
     min_period: float = 0.5,
     max_period: float = 30.0,
+    max_period_grid_points: int = 200_000,
 ) -> BLSResult:
     """
     Run BLS (Box Least Squares) period search on a preprocessed light curve.
@@ -129,6 +131,9 @@ def run_bls(
         Maximum orbital period to search in days. Default 30 days —
         with 90 days of data you need at least 3 transits, so
         max reliable period ≈ baseline / 3.
+    max_period_grid_points : int
+        Hard cap on period grid size. Prevents OOM on memory-constrained
+        hosts like Streamlit Community Cloud (1GB RAM limit).
 
     Returns
     -------
@@ -144,8 +149,9 @@ def run_bls(
     lc_lk = lk.LightCurve(time=lc.time, flux=lc.flux, flux_err=lc.flux_err)
 
     # Linear in frequency = uniform sampling of transit repetition rate
-    period_grid = 1.0 / np.linspace(1.0 / max_period, 1.0 / min_period, 100_000)
-    durations = np.linspace(0.05, 0.5, 5)  # days: 1.2hr to 12hr
+    n_points = min(int(100_000 * (max_period / 30.0)), max_period_grid_points)
+    period_grid = 1.0 / np.linspace(1.0 / max_period, 1.0 / min_period, n_points)
+    durations = np.linspace(0.05, 0.5, 5)  # days: 30 mins to 12hr
 
     model = BoxLeastSquares(lc_lk.time, lc_lk.flux, lc_lk.flux_err)
     pg_results = model.power(period_grid, durations)
@@ -191,7 +197,7 @@ def run_bls(
         best_period=best_period,
         best_duration=best_duration,
         n_transit_points=int(in_transit.sum()),
-        aliases=aliases,
+        # aliases=aliases,
         lc=lc,
     )
 
@@ -217,6 +223,87 @@ def run_bls(
         is_reliable=is_reliable,
         reliability_flags=flags,
     )
+
+
+def find_all_planets(
+    lc: LightCurveData,
+    max_planets: int = 5,
+    min_period: float = 0.5,
+    max_period: float = 30.0,
+    max_period_grid_points: int = 100_000,
+) -> list[BLSResult]:
+    """
+    Iteratively search for multiple planets via period masking.
+
+    After each detection, the transits at that period are masked out
+    of the light curve before re-running BLS. This lets the algorithm
+    find weaker signals that were previously buried under a stronger one.
+    Stops when BLS returns an unreliable result or max_planets is reached.
+
+    max_period_grid_points caps memory usage — important for deployment
+    on memory-constrained environments like Streamlit Community Cloud (1GB).
+
+    Parameters
+    ----------
+    lc : LightCurveData
+        Preprocessed light curve.
+    max_planets : int
+        Maximum number of planets to search for.
+    min_period, max_period : float
+        Period search bounds in days, passed through to run_bls.
+    max_period_grid_points : int
+        Hard cap on period grid size. Prevents OOM on low-memory hosts.
+
+    Returns
+    -------
+    list[BLSResult]
+        One entry per detected planet, in order of detection strength.
+    """
+    lc_lk = lk.LightCurve(time=lc.time, flux=lc.flux, flux_err=lc.flux_err)
+    results = []
+
+    with tqdm(total=max_planets, desc="Searching for planets", unit="planet") as pbar:
+        for i in range(max_planets):
+            pbar.set_description(f"Searching for planet {i + 1}/{max_planets}")
+
+            current_lc = LightCurveData(
+                time=np.asarray(lc_lk.time.value),
+                flux=np.asarray(lc_lk.flux.value),
+                flux_err=np.asarray(lc_lk.flux_err.value),
+                mission=lc.mission,
+                target_name=lc.target_name,
+                sector_or_quarter=lc.sector_or_quarter,
+                raw_time=lc.raw_time,
+                raw_flux=lc.raw_flux,
+            )
+
+            result = run_bls(
+                current_lc,
+                min_period=min_period,
+                max_period=max_period,
+                max_period_grid_points=max_period_grid_points,
+            )
+
+            if result.sde < 5.0:
+                pbar.set_description(f"SDE {result.sde} too low after {i} planet(s), stopping")
+                pbar.update(max_planets - i)
+                break
+
+            results.append(result)
+            pbar.set_postfix(period=f"{result.best_period:.2f}d", sde=f"{result.sde:.1f}")
+            pbar.update(1)
+            logger.info(f"Planet {i + 1} at {result.best_period:.4f}d, masking and re-searching...")
+
+            mask = lc_lk.create_transit_mask(
+                period=result.best_period,
+                transit_time=result.best_t0,
+                duration=result.best_duration * 1.5,
+            )
+            lc_lk = lc_lk[~mask]
+
+    return results
+
+
 
 def _find_aliases(
     periods: np.ndarray,
@@ -269,49 +356,45 @@ def _find_aliases(
 
 
 def _assess_reliability(
-    sde: float,
-    snr: float,
-    transit_depth: float,
-    depth_uncertainty: float,
-    best_period: float,
-    best_duration: float,
-    n_transit_points: int,
-    aliases: list,
-    lc: LightCurveData,
+        sde: float,
+        snr: float,
+        transit_depth: float,
+        depth_uncertainty: float,
+        best_period: float,
+        best_duration: float,
+        n_transit_points: int,
+        # aliases: list,
+        lc: LightCurveData,
 ) -> tuple[bool, list[str]]:
     """
-    Assess detection reliability. Errs toward flagging rather than overclaiming.
-    Returns (is_reliable, list of concern strings).
+    Vetting logic based on NASA's threshold crossing event (TCE) standards.
     """
     flags = []
 
+    # Check signal strength: NASA's Kepler pipeline uses a 7.1 sigma floor
     if sde < 7.0:
-        flags.append(f"SDE={sde:.1f} below detection threshold of 7.0")
+        flags.append("low signal detection efficiency")
     if snr < 5.0:
-        flags.append(f"SNR={snr:.1f} — depth not well-constrained")
-    if transit_depth <= 0:
-        flags.append("Negative depth — brightening event, not a transit")
-    if transit_depth < 1e-5:
-        flags.append("Depth < 10ppm — below Kepler noise floor, likely not real")
-    if transit_depth > 0.05:
-        flags.append(f"Depth={transit_depth:.1%} > 5% — probable eclipsing binary")
-    if best_duration > 0.5 * best_period:
-        flags.append("Duration > half the period — unphysical, likely false positive")
-    if n_transit_points < 5:
-        flags.append(f"Only {n_transit_points} in-transit points — depth poorly constrained")
-    if not np.isfinite(depth_uncertainty):
-        flags.append("Depth uncertainty unmeasurable — insufficient in-transit points")
-    if aliases:
-        flags.append(f"Aliases at {aliases} days — verify this is the true period, not a harmonic")
-    if best_period < 0.6:
-        flags.append("Period near minimum search boundary — may be truncated")
+        flags.append("low signal to noise ratio")
 
-    baseline_days = lc.time[-1] - lc.time[0]
-    n_expected = baseline_days / best_period
-    if n_expected < 3:
-        flags.append(f"Only ~{n_expected:.0f} expected transits — need at least 3")
+    # Check data coverage: Confirming a period requires seeing it repeat
+    total_baseline = lc.time.max() - lc.time.min()
+    if (total_baseline / best_period) < 2.5:
+        flags.append("insufficient number of transits")
 
-    return len(flags) == 0, flags
+    # Check for eclipsing binaries: Planets rarely block >10% of their orbit
+    if (best_duration / best_period) > 0.1:
+        flags.append("physically implausible transit duration")
 
+    # Check noise floor: Signal must be clear of the local flux scatter
+    if transit_depth < (3 * depth_uncertainty):
+        flags.append("depth buried in noise floor")
 
+    # Check sampling: Need enough points to resolve the U-shaped dip
+    if n_transit_points < 8:
+        flags.append("too few data points in transit")
 
+    # Reliability is true only if the candidate clears all hurdles
+    is_reliable = len(flags) == 0
+
+    return is_reliable, flags
