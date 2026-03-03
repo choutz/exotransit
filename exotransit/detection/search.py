@@ -167,8 +167,12 @@ def run_bls(
     folded_flux = np.asarray(folded.flux.value)
     folded_flux_err = np.asarray(folded.flux_err.value)
 
-    # In-transit mask: points within half a transit duration of phase 0
-    half_dur = best_duration / (2 * best_period)
+    # folded_time is in days centered on 0. half_dur is a day threshold, not a phase fraction.
+    cadence_days = np.median(np.diff(lc.time))
+    half_dur = max(
+        best_duration / 2,
+        1.5 * cadence_days,  # minimum 1.5 cadence lengths to catch sparse transits
+    )
     in_transit = np.abs(folded_time) < half_dur
 
     if in_transit.sum() < 3:
@@ -390,9 +394,14 @@ def _assess_reliability(
     if transit_depth < (3 * depth_uncertainty):
         flags.append("depth buried in noise floor")
 
-    # Check sampling: Need enough points to resolve the U-shaped dip
-    if n_transit_points < 8:
-        flags.append("too few data points in transit")
+    # Coverage/sampling check: cadence-aware, works across Kepler/TESS/K2
+    cadence_days = np.median(np.diff(lc.time))
+    expected_points = best_duration / cadence_days
+    coverage_ratio = n_transit_points / expected_points if expected_points > 0 else 0
+    if n_transit_points < 3:
+        flags.append("critically low point count in transit")
+    elif coverage_ratio < 0.7:
+        flags.append(f"poor transit coverage: {int(coverage_ratio * 100)}% of expected points captured")
 
     # Reliability is true only if the candidate clears all hurdles
     is_reliable = len(flags) == 0
