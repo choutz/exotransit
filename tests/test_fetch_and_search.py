@@ -1,36 +1,6 @@
-import pickle
 import numpy as np
-from pathlib import Path
-from exotransit.pipeline.fetch import fetch_stitched_light_curve, list_available_observations
 from exotransit.detection.search import run_bls, find_all_planets
-
-CACHE_DIR = Path(__file__).parent / ".lc_cache"
-
-
-def _cache_key(target: str, mission: str, max_quarters: int) -> str:
-    return target.lower().replace(" ", "_") + f"_{mission.lower()}_{max_quarters}q"
-
-
-def get_light_curve(target: str, mission: str, max_quarters: int):
-    CACHE_DIR.mkdir(exist_ok=True)
-    cache_file = CACHE_DIR / f"{_cache_key(target, mission, max_quarters)}.pkl"
-
-    if cache_file.exists():
-        print(f"Loading '{target}' from cache...")
-        with open(cache_file, "rb") as f:
-            return pickle.load(f)
-
-    print(f"Querying available observations for {target}...")
-    obs = list_available_observations(target, mission=mission)
-    print(f"Found {len(obs)} observations:")
-    for o in obs:
-        print(f"  {o}")
-
-    print("Fetching light curve from MAST...")
-    lc = fetch_stitched_light_curve(target, mission=mission, max_quarters=max_quarters)
-    with open(cache_file, "wb") as f:
-        pickle.dump(lc, f)
-    return lc
+from tests.helpers import get_light_curve
 
 
 if __name__ == "__main__":
