@@ -3,6 +3,8 @@ import numpy as np
 from exotransit.detection.search import run_bls
 from exotransit.mcmc.fit import run_mcmc
 from tests.helpers import get_light_curve
+from exotransit.physics.stellar import query_stellar_params
+from exotransit.physics.planets import derive_planet_physics
 
 logging.disable(logging.INFO)
 
@@ -32,3 +34,24 @@ if __name__ == "__main__":
     print(f"  Converged: {mcmc.converged}")
     print(f"  Notes: {mcmc.convergence_notes}")
     print(f"  Samples shape: {mcmc.samples.shape}")
+
+    print("\nQuerying stellar parameters...")
+    stellar = query_stellar_params("Kepler-5 b")
+    print(f"  Star:    {stellar.name}")
+    print(f"  R_star:  {stellar.radius:.3f} +{stellar.radius_err[1]:.3f} -{stellar.radius_err[0]:.3f} R_sun")
+    print(f"  M_star:  {stellar.mass:.3f} +{stellar.mass_err[1]:.3f} -{stellar.mass_err[0]:.3f} M_sun")
+    print(f"  T_eff:   {stellar.teff:.0f} +{stellar.teff_err[1]:.0f} -{stellar.teff_err[0]:.0f} K")
+
+    print("\nDeriving planet physics...")
+    physics = derive_planet_physics(mcmc, stellar)
+
+    def fmt(t):
+        return f"{t[0]:.3f} +{t[2]:.3f} -{t[1]:.3f}"
+
+    print(f"  Radius:      {fmt(physics.radius_earth)} R_earth")
+    print(f"  Radius:      {fmt(physics.radius_jupiter)} R_jupiter")
+    print(f"  Radius:      {fmt(physics.radius_km)} km")
+    print(f"  Semi-major:  {fmt(physics.semi_major_axis_au)} AU")
+    print(f"  T_eq:        {fmt(physics.equilibrium_temp)} K")
+    print(f"  Insolation:  {fmt(physics.insolation)} S_earth")
+    print(f"  (albedo={physics.albedo_assumed} assumed)")
