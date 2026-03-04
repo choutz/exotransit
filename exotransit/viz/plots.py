@@ -36,7 +36,7 @@ COLORS = {
 
 LAYOUT_DEFAULTS = dict(
     template="plotly_dark",
-    font=dict(family="monospace", size=12),
+    font=dict(family="monospace", size=12, color="#e2e8f0"),
     paper_bgcolor="#0f172a",
     plot_bgcolor="#1e293b",
 )
