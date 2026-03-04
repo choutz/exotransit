@@ -9,3 +9,4 @@ build/
 .env
 *.xml
 tests/.lc_cache/
+tests/viz_output/
