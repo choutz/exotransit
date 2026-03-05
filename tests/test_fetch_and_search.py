@@ -1,10 +1,19 @@
 import numpy as np
-from exotransit.detection.search import run_bls, find_all_planets
+from exotransit.detection.multi_planet import find_all_planets
 from tests.helpers import get_light_curve
+from config import MEDIUM, FULL
+
+conf = FULL
+"""
+passed with full conf: 
+kepler 5 one planet 
+kepler 11 six planets
+kepler 7 one planet 
+"""
 
 
 if __name__ == "__main__":
-    lc = get_light_curve("Kepler-11", mission="Kepler", max_quarters=17)
+    lc = get_light_curve("Kepler-7", mission="Kepler", max_quarters=conf.max_quarters)
     print(f"  Target:   {lc.target_name}")
     print(f"  Points:   {len(lc.time)}")
     print(f"  Baseline: {lc.time[-1] - lc.time[0]:.1f} days")
@@ -12,7 +21,14 @@ if __name__ == "__main__":
     print(f"  Median uncertainty: {np.median(lc.flux_err):.6f}")
 
     print("\nSearching for multiple planets...")
-    results = find_all_planets(lc, max_planets=6, min_period=2.0, max_period=120.0)
+    results = find_all_planets(
+        lc,
+        max_planets=conf.max_planets,
+        min_period=conf.bls.min_period,
+        max_period=conf.bls.max_period,
+        max_period_grid_points=conf.bls.max_period_grid_points,
+        debug_dir=r'/Users/charlie/Desktop/job search 2026/exotransit/tests/debug_masks',
+    )
     print(f"Found {len(results)} planet candidate(s):")
     for i, result in enumerate(results):
         print(f"\n  Planet {i + 1}:")

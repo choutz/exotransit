@@ -1,5 +1,5 @@
 """
-exotransit/pipeline/fetch.py
+exotransit/pipeline/light_curves.py
 
 Fetches and preprocesses light curves from NASA MAST archive via lightkurve.
 No data is stored locally — everything is queried at runtime.
@@ -9,6 +9,8 @@ import logging
 import numpy as np
 import lightkurve as lk
 from dataclasses import dataclass
+
+from exotransit.pipeline.helpers import _compute_window_points, _extract_flux_err
 
 logger = logging.getLogger(__name__)
 
@@ -44,25 +46,6 @@ class LightCurveData:
     sector_or_quarter: int
     raw_time: np.ndarray
     raw_flux: np.ndarray
-
-
-def _compute_window_points(time_array: np.ndarray) -> int:
-    """Odd integer number of cadences spanning ~0.5 days. Savgol requires odd."""
-    cadence_days = np.nanmedian(np.diff(time_array))
-    window = int(0.5 / cadence_days)
-    if window % 2 == 0:
-        window += 1
-    return max(window, 3)
-
-
-def _extract_flux_err(lc, flux: np.ndarray) -> np.ndarray:
-    """Return flux_err from lc, filling NaNs with median. Falls back to std(flux)."""
-    if lc.flux_err is not None:
-        flux_err = np.asarray(lc.flux_err.value, dtype=float)
-        median_err = np.nanmedian(flux_err)
-        return np.where(np.isnan(flux_err), median_err, flux_err)
-    logger.warning("No flux_err in data, estimating from scatter.")
-    return np.full_like(flux, np.std(flux))
 
 
 def fetch_light_curve(
@@ -233,23 +216,3 @@ def fetch_stitched_light_curve(
     )
 
 
-def list_available_observations(target: str, mission: str = "any") -> list[dict]:
-    """
-    List available light curves for a target without downloading anything.
-    Used to populate the sector/quarter selector in the UI.
-
-    Returns list of dicts with keys: 'index', 'mission', 'year', 'exptime'.
-    """
-    search_result = lk.search_lightcurve(
-        target,
-        mission=mission if mission != "any" else None,
-    )
-    return [
-        {
-            "index": i,
-            "mission": str(search_result[i].mission[0]),
-            "year": str(search_result[i].year[0]),
-            "exptime": str(search_result[i].exptime[0]),
-        }
-        for i in range(len(search_result))
-    ]

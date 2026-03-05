@@ -6,12 +6,12 @@ spectrum and phase fold for each detected planet.
 """
 
 import streamlit as st
-from exotransit.detection.search import find_all_planets
+from exotransit.detection.multi_planet import find_all_planets
 from exotransit.viz.plots import plot_bls_power_spectrum, plot_phase_fold
-from exotransit.detection.search import run_bls
+from exotransit.detection.bls import run_bls
 import lightkurve as lk
 import numpy as np
-from exotransit.pipeline.fetch import LightCurveData
+from exotransit.pipeline.light_curves import LightCurveData
 
 
 def render():

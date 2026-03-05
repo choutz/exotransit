@@ -8,9 +8,9 @@ import pickle
 import numpy as np
 from pathlib import Path
 from tests.helpers import get_light_curve
-from exotransit.detection.search import find_all_planets
-from exotransit.mcmc.fit import run_mcmc
-from exotransit.physics.stellar import query_stellar_params
+from exotransit.detection.multi_planet import find_all_planets
+from exotransit.mcmc.fit_mcmc import run_mcmc
+from exotransit.physics.stars import query_stellar_params
 from exotransit.physics.planets import derive_planet_physics
 from exotransit.physics.limb_darkening import get_limb_darkening
 from exotransit.viz.plots import (

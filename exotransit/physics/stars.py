@@ -1,5 +1,5 @@
 """
-exotransit/physics/stellar.py
+exotransit/physics/stars.py
 
 Queries stellar parameters from the NASA Exoplanet Archive.
 All parameters needed to convert dimensionless MCMC outputs

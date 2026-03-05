@@ -1,5 +1,5 @@
 """
-exotransit/mcmc/fit.py
+exotransit/mcmc/fit_mcmc.py
 
 MCMC posterior sampling for transit parameter estimation.
 
@@ -28,10 +28,11 @@ Exposure time: derived from light curve cadence for correct
 import logging
 import numpy as np
 import emcee
-import batman
 from dataclasses import dataclass
-from exotransit.pipeline.fetch import LightCurveData
-from exotransit.detection.search import BLSResult
+
+from exotransit.mcmc.helpers import _log_probability
+from exotransit.pipeline.light_curves import LightCurveData
+from exotransit.detection.bls import BLSResult
 
 logger = logging.getLogger(__name__)
 
@@ -118,108 +119,6 @@ class MCMCResult:
     acceptance_fraction: float
     converged: bool
     convergence_notes: list
-
-def _transit_model(
-    params: np.ndarray,
-    time: np.ndarray,
-    period: float,
-    u1: float,
-    u2: float,
-    stellar_mass: float = 1.0,
-    stellar_radius: float = 1.0,
-    exp_time_days: float = 30.0 / 60.0 / 24.0,
-    supersample: int = 1,
-) -> np.ndarray:
-    """
-    Mandel-Agol transit light curve via batman.
-    params = [t0, rp, b]. Period and limb darkening are fixed.
-
-    Semi-major axis is derived from Kepler's 3rd law using actual stellar
-    mass, then converted to stellar radii using actual stellar radius.
-    Assuming solar values produces incorrect transit duration for non-solar stars.
-
-    supersample > 1 corrects for integration time smearing.
-    exp_time_days should match the actual cadence of the observations:
-        Kepler long-cadence: 30 min = 0.020833 days
-        TESS 2-min cadence:  2 min  = 0.001389 days
-        TESS 10-min cadence: 10 min = 0.006944 days
-    """
-    t0, rp, b = params
-
-    p = batman.TransitParams()
-    p.per = period
-    p.t0 = t0
-    p.rp = rp
-    p.b = b
-    # Semi-major axis: Kepler's 3rd law with actual stellar mass (AU),
-    # converted to stellar radii using actual stellar radius
-    a_au = (stellar_mass * (period / 365.25) ** 2) ** (1/3)
-    p.a = a_au * 215.032 / stellar_radius
-    p.inc = np.degrees(np.arccos(np.clip(b / p.a, -1, 1)))
-    p.ecc = 0.0   # circular orbit — valid for hot Jupiters, assumed for others
-    p.w = 90.0
-    p.u = [u1, u2]
-    p.limb_dark = "quadratic"
-
-    m = batman.TransitModel(
-        p, time,
-        supersample_factor=supersample,
-        exp_time=exp_time_days if supersample > 1 else 0.0,
-    )
-    return m.light_curve(p)
-
-
-def _log_prior(params: np.ndarray) -> float:
-    """Uniform priors within physically meaningful bounds."""
-    t0, rp, b = params
-
-    if not (-0.5 < t0 < 0.5):
-        return -np.inf
-    if not (0.0 < rp < 0.3):
-        return -np.inf
-    if not (0.0 <= b < 1.0):
-        return -np.inf
-
-    return 0.0
-
-
-def _log_likelihood(
-    params: np.ndarray,
-    time: np.ndarray,
-    flux: np.ndarray,
-    flux_err: np.ndarray,
-    period: float,
-    u1: float,
-    u2: float,
-    stellar_mass: float,
-    stellar_radius: float,
-    exp_time_days: float,
-) -> float:
-    """Gaussian log likelihood assuming known per-point uncertainties."""
-    try:
-        model_flux = _transit_model(
-            params, time, period, u1, u2,
-            stellar_mass, stellar_radius, exp_time_days,
-        )
-    except Exception:
-        return -np.inf
-
-    residuals = flux - model_flux
-    return -0.5 * np.sum((residuals / flux_err) ** 2)
-
-
-def _log_probability(
-    params, time, flux, flux_err, period,
-    u1, u2, stellar_mass, stellar_radius, exp_time_days,
-) -> float:
-    """Log posterior = log prior + log likelihood."""
-    lp = _log_prior(params)
-    if not np.isfinite(lp):
-        return -np.inf
-    return lp + _log_likelihood(
-        params, time, flux, flux_err, period,
-        u1, u2, stellar_mass, stellar_radius, exp_time_days,
-    )
 
 
 def run_mcmc(

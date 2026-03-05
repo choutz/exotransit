@@ -1,9 +1,9 @@
 import logging
 import numpy as np
-from exotransit.detection.search import run_bls
-from exotransit.mcmc.fit import run_mcmc
+from exotransit.detection.bls import run_bls
+from exotransit.mcmc.fit_mcmc import run_mcmc
 from tests.helpers import get_light_curve
-from exotransit.physics.stellar import query_stellar_params
+from exotransit.physics.stars import query_stellar_params
 from exotransit.physics.planets import derive_planet_physics
 from exotransit.physics.limb_darkening import get_limb_darkening
 

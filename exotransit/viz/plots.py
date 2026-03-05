@@ -11,11 +11,11 @@ whether to show(), write_html(), or pass to st.plotly_chart().
 import numpy as np
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-from exotransit.pipeline.fetch import LightCurveData
-from exotransit.detection.search import BLSResult
-from exotransit.mcmc.fit import MCMCResult
+from exotransit.pipeline.light_curves import LightCurveData
+from exotransit.detection.bls import BLSResult
+from exotransit.mcmc.fit_mcmc import MCMCResult
 from exotransit.physics.planets import PlanetPhysics
-from exotransit.physics.stellar import StellarParams
+from exotransit.physics.stars import StellarParams
 
 # Consistent color palette across all plots
 COLORS = {
@@ -258,7 +258,7 @@ def plot_phase_fold(bls: BLSResult, mcmc: MCMCResult | None = None) -> go.Figure
     ), row=1, col=1)
 
     if has_model:
-        from exotransit.mcmc.fit import _transit_model
+        from exotransit.mcmc.helpers import _transit_model
 
         params = np.array([mcmc.t0_med, mcmc.rp_med, mcmc.b_med])
         t_model = np.linspace(t.min(), t.max(), 1000)
@@ -328,7 +328,7 @@ def plot_mcmc_spaghetti(bls: BLSResult, mcmc: MCMCResult, n_samples: int = 100) 
 
     Samples are [t0, rp, b] — u1/u2 are fixed to mcmc.u1, mcmc.u2.
     """
-    from exotransit.mcmc.fit import _transit_model
+    from exotransit.mcmc.helpers import _transit_model
 
     fig = go.Figure()
 

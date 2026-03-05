@@ -5,7 +5,8 @@ Shared test utilities — not part of the exotransit package.
 
 import pickle
 from pathlib import Path
-from exotransit.pipeline.fetch import fetch_stitched_light_curve, list_available_observations
+from exotransit.pipeline.light_curves import fetch_stitched_light_curve
+from exotransit.pipeline.observations import list_available_observations
 
 CACHE_DIR = Path(__file__).parent / ".lc_cache"
 

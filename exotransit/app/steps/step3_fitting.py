@@ -6,7 +6,7 @@ Shows phase fold with model overlay, spaghetti, posteriors, corner.
 """
 
 import streamlit as st
-from exotransit.mcmc.fit import run_mcmc
+from exotransit.mcmc.fit_mcmc import run_mcmc
 from exotransit.viz.plots import (
     plot_phase_fold,
     plot_mcmc_spaghetti,

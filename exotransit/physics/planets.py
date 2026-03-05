@@ -11,8 +11,8 @@ percentiles. No Gaussian error propagation assumptions.
 import logging
 import numpy as np
 from dataclasses import dataclass
-from exotransit.mcmc.fit import MCMCResult
-from exotransit.physics.stellar import StellarParams
+from exotransit.mcmc.fit_mcmc import MCMCResult
+from exotransit.physics.stars import StellarParams
 
 logger = logging.getLogger(__name__)
 
