@@ -143,6 +143,50 @@ Configuration profiles (`MEDIUM` for Streamlit Cloud, `FULL` for local) are in `
 
 ---
 
+## Streamlit app
+
+The pipeline is wrapped in a step-by-step Streamlit app intended for interactive exploration of any Kepler or TESS target. The skeleton is functional but still under active development.
+
+**Step 1 — Raw Data**
+Enter a star name (e.g. `Kepler-11`, `TOI-700`). The app downloads the stitched light curve from MAST and queries the NASA Exoplanet Archive for stellar parameters (radius, mass, Teff, log g, metallicity). It shows the raw and detrended flux side by side, with quarter boundaries and >3σ transit candidates highlighted.
+
+**Step 2 — Transit Detection**
+BLS runs iteratively with a live progress bar. For each detection it shows the BLS power spectrum (log period axis, aliases marked) and the phase-folded light curve with binned points. Detections that fail the reliability vetting are filtered out before display.
+
+**Step 3 — MCMC Fitting**
+For each detected planet, emcee runs a fit with limb darkening fixed to the Claret (2011) values retrieved in Step 1. Shows the phase fold with model overlay, MCMC spaghetti plot (posterior draws), corner plot in physical units, and per-parameter posterior histograms.
+
+**Step 4 — Results**
+Physical parameters (radius, semi-major axis, equilibrium temperature, insolation) with 1σ uncertainties. An orrery shows the orbital architecture to scale, and a bubble chart plots the planets against Solar System benchmarks with a habitable zone overlay.
+
+The app is designed to run within Streamlit Community Cloud's constraints (1 GB RAM, 1 vCPU), which drives the `MEDIUM` config profile — a coarser period grid and fewer MCMC steps than the local `FULL` profile.
+
+---
+
+## Known limitations and open problems
+
+This project is a work in progress. The detection pipeline works well on clean, well-separated signals (hot Jupiters, the Kepler-11 system), but generalizing to arbitrary targets surfaces a range of astrophysical and algorithmic challenges:
+
+**Transit masking in multi-planet systems**
+After masking a detected planet's transits, BLS occasionally re-detects the same period on the next iteration, indicating the mask didn't fully suppress the signal. The mask window is currently 3× the BLS-estimated duration, but BLS duration estimates are coarse (5-point grid) and can underestimate true duration, especially for grazing or long-duration transits.
+
+**Reliability threshold generalizability**
+The TCE-style vetting thresholds were tuned against the Kepler pipeline's assumptions (quiet FGK stars, long-cadence photometry, ~4-year baselines). They don't generalize cleanly to:
+- Small planets with shallow depths where per-transit SNR is marginal
+- Short-baseline TESS observations where only 2–3 transit windows exist
+- Active stars with coronal variability that inflates the noise floor
+
+**Transit timing variations (TTVs)**
+Planets in or near mean-motion resonance (e.g. Kepler-36, some Kepler-11 pairs) have transit times that shift by minutes to hours from orbit to orbit due to gravitational interactions. BLS assumes perfectly periodic transits and smears out TTV signals when phase-folding, reducing detection SNR. Handling TTVs properly requires a separate dynamical modeling step not currently implemented.
+
+**Stellar activity**
+Starspots, flares, and coronal mass ejections all produce flux variations that can alias into the BLS period grid or corrupt the transit depth estimate. The current detrending (Savitzky-Golay) removes slow trends but is not specifically designed to handle short-duration flares or rotationally-modulated spot patterns.
+
+**Eclipsing binary contamination**
+The TCE-13 depth cutoff and odd/even test catch the most obvious eclipsing binary false positives, but background EBs (a faint EB within the photometric aperture) are harder to distinguish from a planet purely from photometry.
+
+---
+
 ## References
 
 - Kovács, Zucker & Mazeh (2002) — Box Least Squares algorithm
