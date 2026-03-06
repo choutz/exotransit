@@ -13,9 +13,6 @@ def assess_reliability(
         n_transit_points: int,
         aliases: list,
         lc: LightCurveData,
-        folded_time: np.ndarray = None,
-        folded_flux: np.ndarray = None,
-        folded_flux_err: np.ndarray = None,
 ) -> tuple[bool, list[str]]:
     """
     Vetting logic modeled on NASA's Kepler TCE (Threshold Crossing Event)
@@ -45,20 +42,17 @@ def assess_reliability(
                                  for a TCE; 2.5 allowed partial-transit edge cases
     TCE-09  Alias contamination  strong alias present → flag
 
-    TRANSIT SHAPE TESTS (new)
-    ─────────────────────────
-    TCE-10  Odd/even depth       alternating transit depths suggest EB
-    TCE-11  Transit depth        individually, each transit must contribute
-            consistency         a real signal (catches single-event noise)
-    TCE-12  Secondary eclipse    significant flux brightening at phase 0.5
-            check               is an eclipsing binary signature
-
-    FALSE POSITIVE DISCRIMINATORS (new)
-    ────────────────────────────────────
+    FALSE POSITIVE DISCRIMINATORS
+    ──────────────────────────────
     TCE-13  Depth ratio          depth > 0.03 (3%) suggests grazing EB,
                                  not a planet
     TCE-14  Very low depth       depth < 30 ppm with SNR < 10 is below
             with marginal SNR   Kepler's reliable detection floor
+
+    NOTE: Eclipsing binary discrimination beyond TCE-04/13 (odd/even depth,
+    secondary eclipse checks) is not implemented. Reliable EB rejection from
+    photometry alone requires centroid motion analysis, spectroscopic follow-up,
+    or space-based resolution — all out of scope here.
     """
     flags = []
 
@@ -158,41 +152,6 @@ def assess_reliability(
             f"TCE-09: Strong aliases at {[round(a, 4) for a in aliases]} days — "
             f"verify this is not a harmonic of a stronger signal"
         )
-
-    # ── TCE-10/11/12: Transit shape tests (require folded data) ───────────────
-    if folded_time is not None and folded_flux is not None and folded_flux_err is not None:
-        half_dur = best_duration / 2.0
-
-        # TCE-10: Odd/even transit depth check
-        # Phase-fold and split into odd/even transit events.
-        # If depth alternates, this is a classic eclipsing binary signature.
-        odd_mask = (folded_time > -half_dur) & (folded_time < 0)
-        even_mask = (folded_time > 0) & (folded_time < half_dur)
-        if odd_mask.sum() >= 2 and even_mask.sum() >= 2:
-            odd_depth = 1.0 - np.mean(folded_flux[odd_mask])
-            even_depth = 1.0 - np.mean(folded_flux[even_mask])
-            if odd_depth > 0 and even_depth > 0:
-                depth_asymmetry = abs(odd_depth - even_depth) / max(odd_depth, even_depth)
-                if depth_asymmetry > 0.3:
-                    flags.append(
-                        f"TCE-10: Odd/even depth asymmetry={depth_asymmetry:.2f} > 0.3 "
-                        f"— eclipsing binary signature"
-                    )
-
-        # TCE-12: Secondary eclipse check at phase +0.5P
-        # At half-period away from transit, a real planet shows nothing.
-        # An eclipsing binary shows a secondary eclipse here.
-        # secondary_mask = np.abs(np.abs(folded_time / best_period) - 0.5) < (half_dur / best_period)
-        # if secondary_mask.sum() >= 3:
-        #     secondary_depth = 1.0 - np.mean(folded_flux[secondary_mask])
-        #     secondary_sigma = secondary_depth / (
-        #         np.sqrt(np.sum(folded_flux_err[secondary_mask] ** 2)) / secondary_mask.sum()
-        #     ) if secondary_mask.sum() > 0 else 0
-        #     if secondary_sigma > 3.0:
-        #         flags.append(
-        #             f"TCE-12: Secondary eclipse detected at phase 0.5 ({secondary_sigma:.1f}σ) "
-        #             f"— eclipsing binary signature"
-        #         )
 
     is_reliable = len(flags) == 0
     return is_reliable, flags

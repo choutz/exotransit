@@ -166,7 +166,7 @@ def run_mcmc(
     -------
     MCMCResult
     """
-    # Cadence from median time spacing — works for Kepler, TESS, K2
+    # Cadence from median time spacing
     exp_time_days = float(np.median(np.diff(lc.time)))
 
     logger.info(

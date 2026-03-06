@@ -28,11 +28,11 @@ class LightCurveData:
     flux_err : np.ndarray
         Per-point photometric uncertainty — the basis of all uncertainty analysis.
     mission : str
-        'Kepler', 'K2', or 'TESS'.
+        'Kepler' or 'K2'.
     target_name : str
         Resolved name of the target star.
     sector_or_quarter : int
-        Observation window index. ~90 days (Kepler quarter) or ~27 days (TESS sector).
+        Observation window index. ~90 days per Kepler quarter.
     raw_time : np.ndarray
         Pre-processing time array, kept for before/after diagnostic plots.
     raw_flux : np.ndarray
@@ -64,9 +64,9 @@ def fetch_light_curve(
     target : str
         Star name or catalog ID e.g. "Kepler-90", "TIC 261136679", "TOI-700".
     mission : str
-        'Kepler', 'K2', 'TESS', or 'any'.
+        'Kepler', 'K2', or 'any'.
     exptime : str
-        'long' (30-min Kepler / 10-min TESS) or 'short' (1-min cadence).
+        'long' (30-min Kepler long-cadence) or 'short' (1-min cadence).
     sector : int or None
         Specific quarter/sector index. None = first available.
 
@@ -147,7 +147,7 @@ def fetch_stitched_light_curve(
     target : str
         Star name or catalog ID.
     mission : str
-        'Kepler', 'K2', or 'TESS'.
+        'Kepler' or 'K2'.
     max_quarters : int
         Max quarters/sectors to download. 8 (~2 years) is a good balance
         between baseline length and download time.

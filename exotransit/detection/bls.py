@@ -2,7 +2,7 @@
 BLS (Box Least Squares) period search for exoplanet transits.
 
 BLS was introduced by Kovacs, Zucker & Mazeh (2002) and remains
-the standard algorithm for transit detection in Kepler/TESS data.
+the standard algorithm for transit detection in Kepler photometry.
 It searches for periodic, box-shaped dips in a light curve by
 testing thousands of period/duration combinations and scoring
 each by how well a box model fits the data.
@@ -150,13 +150,44 @@ def run_bls(
 
     lc_lk = lk.LightCurve(time=lc.time, flux=lc.flux, flux_err=lc.flux_err)
 
-    # Linear in frequency = uniform sampling of transit repetition rate
-    n_points = min(int(100_000 * (max_period / 30.0)), max_period_grid_points)
-    period_grid = 1.0 / np.linspace(1.0 / max_period, 1.0 / min_period, n_points)
-    durations = np.linspace(0.05, 0.5, 5)  # days: 30 mins to 12hr
+    # 1. Calculate the baseline (total time span)
+    # This is the most critical factor for period resolution.
+    baseline = np.ptp(lc_lk.time.value)  # .value ensures we are working with floats
 
+    # 2. Define Duration Grid (Geometric Spacing)
+    # We use geomspace because a 5-minute error on a 30-minute transit
+    # is much more significant than a 5-minute error on a 5-hour transit.
+    dur_min = 0.02  # ~30 mins
+    dur_max = min(0.5, 0.15 * min_period)  # Max duration shouldn't exceed min period constraints
+
+    # 12 to 15 steps is usually the "sweet spot" for accuracy vs speed
+    durations = np.geomspace(dur_min, dur_max, 12)
+
+    # 3. Calculate Period Grid (Frequency Spacing)
+    # The frequency step (df) should be small enough so the transit doesn't
+    # shift by more than a fraction of its duration over the whole baseline.
+    # Logic: df = frequency_factor * min_duration / baseline^2
+    frequency_factor = 1.0
+    df = (frequency_factor * dur_min) / (baseline ** 2)
+
+    f_min = 1.0 / max_period
+    f_max = 1.0 / min_period
+
+    # Determine number of points based on the required frequency resolution
+    n_points = int(np.ceil((f_max - f_min) / df))
+
+    # Safety cap to prevent memory errors on extremely long baselines (e.g., years of data)
+    max_points = 200_000
+    n_points = min(n_points, max_points)
+
+    # Generate the grid uniform in frequency, then convert to periods
+    period_grid = 1.0 / np.linspace(f_max, f_min, n_points)
+
+    # 4. Run the Model
     model = BoxLeastSquares(lc_lk.time, lc_lk.flux, lc_lk.flux_err)
-    pg_results = model.power(period_grid, durations)
+    pg_results = model.power(period_grid, durations, oversample=10)
+
+
     periods = np.asarray(pg_results.period)
     power = np.asarray(pg_results.power)
 
@@ -205,9 +236,6 @@ def run_bls(
         n_transit_points=int(in_transit.sum()),
         aliases=aliases,
         lc=lc,
-        folded_time=folded_time,  # add these three
-        folded_flux=folded_flux,
-        folded_flux_err=folded_flux_err,
     )
 
     logger.info(

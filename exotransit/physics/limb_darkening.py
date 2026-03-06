@@ -14,7 +14,7 @@ Coverage and limitations:
 - Teff: 3500–50000 K (main sequence through hot stars)
 - logg: 0.0–5.0 (giants through white dwarfs)
 - Metallicity [Fe/H]: -5.0 to +1.0
-- Kepler bandpass only — not valid for TESS, K2, or ground-based filters
+- Kepler bandpass only — not valid for K2, ground-based, or other space-based filters
 - ATLAS9 LTE models: reliable for FGK stars (Teff 4000–8000K, logg 3.5–5.0)
   Less reliable for M dwarfs (Teff < 4000K, where PHOENIX models are preferred)
   and hot stars (Teff > 8000K, where non-LTE effects become significant)

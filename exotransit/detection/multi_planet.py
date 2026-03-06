@@ -16,10 +16,11 @@ def find_all_planets(
     min_period: float = 2.0,
     max_period: float = 30.0,
     max_period_grid_points: int = 100_000,
-    debug_dir: str | None = None,    # if set, save mask diagnostic PNGs here
+    debug_dir: str | None = None,
 ) -> list[BLSResult]:
+    # Use a copy so we don't mutate the original input
     lc_lk = lk.LightCurve(time=lc.time, flux=lc.flux, flux_err=lc.flux_err)
-    results = []
+    unique_results = []
 
     if debug_dir is not None:
         Path(debug_dir).mkdir(parents=True, exist_ok=True)
@@ -28,6 +29,7 @@ def find_all_planets(
         for i in range(max_planets):
             pbar.set_description(f"Searching for planet {i + 1}")
 
+            # current_lc now uses the modified (filled) lc_lk flux
             current_lc = LightCurveData(
                 time=np.asarray(lc_lk.time.value),
                 flux=np.asarray(lc_lk.flux.value),
@@ -47,21 +49,28 @@ def find_all_planets(
             )
 
             if not result.is_reliable:
-                pbar.set_description(f"Stopping after {i} reliable planet(s)")
+                pbar.set_description(f"Stopping at {len(unique_results)} planets")
+                print(result.reliability_flags)
                 pbar.update(max_planets - i)
                 break
 
-            results.append(result)
-            pbar.set_postfix(period=f"{result.best_period:.2f}d", sde=f"{result.sde:.1f}")
-            pbar.update(1)
-            logger.info(f"Planet {i + 1} at {result.best_period:.4f}d, masking and re-searching...")
-
+            # Create the mask
             mask = lc_lk.create_transit_mask(
                 period=result.best_period,
                 transit_time=result.best_t0,
-                duration=result.best_duration * 3.0,
+                duration=result.best_duration * 3.0
             )
 
+            # Check for ghosts/duplicates
+            is_dup = False
+            for existing in unique_results:
+                period_diff = abs(result.best_period - existing.best_period) / existing.best_period
+                if period_diff < 0.05:
+                    logger.info(f"Skipping duplicate/TTV ghost at {result.best_period:.4f}d")
+                    is_dup = True
+                    break
+
+            # Save plot before we overwrite the flux
             if debug_dir is not None:
                 _save_mask_debug_plot(
                     time=np.asarray(lc_lk.time.value),
@@ -73,10 +82,20 @@ def find_all_planets(
                     target_name=lc.target_name,
                 )
 
-            lc_lk = lc_lk[~mask]
+            # MEDIAN FILL: Flatten the transits instead of deleting them
+            # This keeps the time array continuous and the BLS algorithm happy
+            lc_lk.flux.value[mask] = np.nanmedian(lc_lk.flux.value)
 
-    return results
+            if is_dup:
+                continue
 
+            # Store and update UI
+            unique_results.append(result)
+            pbar.set_postfix(period=f"{result.best_period:.2f}d", sde=f"{result.sde:.1f}")
+            pbar.update(1)
+            logger.info(f"Planet added: {result.best_period:.4f}d. Masked and continuing...")
+
+    return unique_results
 
 def _save_mask_debug_plot(
     time: np.ndarray,
@@ -135,7 +154,7 @@ def _save_mask_debug_plot(
     ax.set_title(f"Remaining light curve ({n_kept} points) — input to next BLS iteration")
 
     fig.tight_layout()
-    out_path = Path(debug_dir) / f"planet_{planet_number:02d}_mask.png"
+    out_path = Path(debug_dir) / f"{target_name}_planet_{planet_number:02d}_mask.png"
     fig.savefig(out_path, dpi=120, bbox_inches="tight")
     plt.close(fig)
     logger.info(f"Saved mask debug plot: {out_path}")

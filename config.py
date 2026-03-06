@@ -55,7 +55,7 @@ MEDIUM = PipelineConfig(
 FULL = PipelineConfig(
     bls=BLSConfig(
         max_period_grid_points=200_000,
-        min_period=2,
+        min_period=1,
         max_period=100
     ),
     mcmc=MCMCConfig(

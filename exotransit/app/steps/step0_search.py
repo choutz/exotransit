@@ -7,7 +7,7 @@ EXAMPLE_TARGETS = [
     ("Kepler-5 b",  "Hot Jupiter, strong signal"),
     ("Kepler-11",   "6-planet system"),
     ("Kepler-22 b", "Super-Earth in habitable zone"),
-    ("TRAPPIST-1",  "7 Earth-sized planets"),
+    ("Kepler-7 b",  "Inflated hot Jupiter"),
     ("HD 209458",   "First transiting exoplanet"),
 ]
 
@@ -24,7 +24,7 @@ def render():
 
     st.markdown("""
     <div class="explain-box" style="margin-bottom: 2rem;">
-        <strong>What this does:</strong> Enter any star observed by Kepler or TESS.
+        <strong>What this does:</strong> Enter any star observed by Kepler.
         The pipeline fetches raw photometry from NASA's archive, searches for periodic
         dips caused by orbiting planets, fits a physical transit model to measure each
         planet's size and orbit, and propagates uncertainties using Bayesian inference.

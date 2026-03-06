@@ -24,8 +24,7 @@ def _transit_model(
     supersample > 1 corrects for integration time smearing.
     exp_time_days should match the actual cadence of the observations:
         Kepler long-cadence: 30 min = 0.020833 days
-        TESS 2-min cadence:  2 min  = 0.001389 days
-        TESS 10-min cadence: 10 min = 0.006944 days
+        Kepler short-cadence: 1 min = 0.000694 days
     """
     t0, rp, b = params
 

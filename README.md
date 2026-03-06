@@ -1,6 +1,6 @@
 # exotransit
 
-A Python pipeline for detecting and characterizing exoplanet transits from Kepler and TESS photometry. Given a star name, it downloads the light curve, searches for periodic transit signals, fits a physical model using MCMC, and derives planet properties with full uncertainty propagation.
+A Python pipeline for detecting and characterizing exoplanet transits from Kepler photometry. Given a star name, it downloads the light curve, searches for periodic transit signals, fits a physical model using MCMC, and derives planet properties with full uncertainty propagation.
 
 Validated on Kepler-5b (single planet, hot Jupiter), Kepler-7b, and Kepler-11 (six-planet system).
 
@@ -159,7 +159,7 @@ For each detected planet, emcee runs a fit with limb darkening fixed to the Clar
 **Step 4 — Results**
 Physical parameters (radius, semi-major axis, equilibrium temperature, insolation) with 1σ uncertainties. An orrery shows the orbital architecture to scale, and a bubble chart plots the planets against Solar System benchmarks with a habitable zone overlay.
 
-The app is designed to run within Streamlit Community Cloud's constraints (1 GB RAM, 1 vCPU), which drives the `MEDIUM` config profile — a coarser period grid and fewer MCMC steps than the local `FULL` profile.
+The app currently only supports Kepler targets. The app is designed to run within Streamlit Community Cloud's constraints (1 GB RAM, 1 vCPU), which drives the `MEDIUM` config profile — a coarser period grid and fewer MCMC steps than the local `FULL` profile.
 
 ---
 
@@ -183,7 +183,11 @@ Planets in or near mean-motion resonance (e.g. Kepler-36, some Kepler-11 pairs) 
 Starspots, flares, and coronal mass ejections all produce flux variations that can alias into the BLS period grid or corrupt the transit depth estimate. The current detrending (Savitzky-Golay) removes slow trends but is not specifically designed to handle short-duration flares or rotationally-modulated spot patterns.
 
 **Eclipsing binary contamination**
-The TCE-13 depth cutoff and odd/even test catch the most obvious eclipsing binary false positives, but background EBs (a faint EB within the photometric aperture) are harder to distinguish from a planet purely from photometry.
+Eclipsing binaries are a major source of false positives in transit surveys. The pipeline catches the most blatant cases via TCE-04 (duty cycle) and TCE-13 (depth > 3%), but anything more subtle — odd/even depth alternation, secondary eclipses at phase 0.5, background EBs blended inside the photometric aperture — requires centroid motion analysis, radial velocity follow-up, or multi-wavelength photometry to rule out. Attempting to do this from Kepler photometry alone produces enough false positives and false negatives that it's not worth the complexity. So: if the target is actually an eclipsing binary that passes the coarse cuts, the pipeline will fit it and give you numbers. The numbers will be wrong.
+
+**Why real planet discoveries get their own papers**
+
+The above list is not exhaustive — it's just the issues that have come up so far while testing on known systems. Real planet confirmation papers exist because each of these problems requires its own specialized analysis. A Kepler discovery paper typically involves: independent vetting of every TCE by multiple reviewers, centroid analysis to rule out background EBs, stellar characterization from spectroscopy (not archive values), dynamical modeling if multiple planets are present, statistical false positive probability calculations, and often ground-based follow-up photometry and radial velocity measurements. A generic pipeline that goes "download light curve → run BLS → done" will find the same candidates the real pipeline found, but it has no way to actually confirm them. This project is the former: a tool for exploring what's in the data and understanding the physics, not a replacement for the full vetting process.
 
 ---
 

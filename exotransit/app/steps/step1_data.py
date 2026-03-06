@@ -32,16 +32,11 @@ def render():
                 lc = fetch_stitched_light_curve(target, mission="Kepler", max_quarters=8)
                 st.session_state.lc = lc
             except Exception as e:
-                # Try TESS as fallback
-                try:
-                    lc = fetch_stitched_light_curve(target, mission="TESS", max_quarters=8)
-                    st.session_state.lc = lc
-                except Exception as e2:
-                    st.session_state.error = (
-                        f"Could not fetch light curve for '{target}'. "
-                        f"Check the star name and try again.\n\nDetails: {e2}"
-                    )
-                    st.rerun()
+                st.session_state.error = (
+                    f"Could not fetch Kepler light curve for '{target}'. "
+                    f"Check the star name and try again.\n\nDetails: {e}"
+                )
+                st.rerun()
 
         with st.spinner("Querying stellar parameters from NASA Exoplanet Archive…"):
             try:
