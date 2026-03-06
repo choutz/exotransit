@@ -20,7 +20,7 @@ def render():
     st.markdown(f"""
     <div class="step-header">Step 4 — Results</div>
     <h2 style="margin: 0 0 0.25rem 0; font-size: 2rem;">Planet Characterization</h2>
-    <p style="color: #64748b; margin: 0 0 1.5rem 0; font-family: 'DM Mono', monospace; font-size: 0.8rem;">
+    <p style="color: #94a3b8; margin: 0 0 1.5rem 0; font-family: 'DM Mono', monospace; font-size: 0.8rem;">
         Physical parameters derived from MCMC posteriors + stellar parameters
     </p>
     """, unsafe_allow_html=True)
@@ -72,7 +72,7 @@ def render():
                     <span style="font-family: 'Instrument Serif', serif; font-size: 1.4rem; color: #f1f5f9;">
                         Planet {i+1}
                     </span>
-                    <span style="font-family: 'DM Mono', monospace; font-size: 0.75rem; color: #64748b; margin-left: 0.75rem;">
+                    <span style="font-family: 'DM Mono', monospace; font-size: 0.75rem; color: #94a3b8; margin-left: 0.75rem;">
                         P = {bls.best_period:.4f} d
                     </span>
                 </div>
@@ -86,7 +86,7 @@ def render():
                     <div class="metric-val">{r_jup[0]:.3f}</div>
                     <div class="metric-unit">R<sub>Jup</sub></div>
                     <div class="metric-label">Planet radius</div>
-                    <div style="font-family:'DM Mono',monospace; font-size:0.65rem; color:#475569; margin-top:0.2rem;">
+                    <div style="font-family:'DM Mono',monospace; font-size:0.65rem; color:#94a3b8; margin-top:0.2rem;">
                         +{r_jup[2]:.3f} / -{r_jup[1]:.3f}
                     </div>
                 </div>
@@ -99,7 +99,7 @@ def render():
                     <div class="metric-val">{a_au[0]:.4f}</div>
                     <div class="metric-unit">AU</div>
                     <div class="metric-label">Semi-major axis</div>
-                    <div style="font-family:'DM Mono',monospace; font-size:0.65rem; color:#475569; margin-top:0.2rem;">
+                    <div style="font-family:'DM Mono',monospace; font-size:0.65rem; color:#94a3b8; margin-top:0.2rem;">
                         +{a_au[2]:.4f} / -{a_au[1]:.4f}
                     </div>
                 </div>
@@ -107,7 +107,7 @@ def render():
                     <div class="metric-val">{t_eq[0]:.0f}</div>
                     <div class="metric-unit">K</div>
                     <div class="metric-label">Equilibrium temp</div>
-                    <div style="font-family:'DM Mono',monospace; font-size:0.65rem; color:#475569; margin-top:0.2rem;">
+                    <div style="font-family:'DM Mono',monospace; font-size:0.65rem; color:#94a3b8; margin-top:0.2rem;">
                         ±{t_eq[2]:.0f} K
                     </div>
                 </div>
@@ -115,7 +115,7 @@ def render():
                     <div class="metric-val">{insol[0]:.0f}</div>
                     <div class="metric-unit">S<sub>⊕</sub></div>
                     <div class="metric-label">Insolation</div>
-                    <div style="font-family:'DM Mono',monospace; font-size:0.65rem; color:#475569; margin-top:0.2rem;">
+                    <div style="font-family:'DM Mono',monospace; font-size:0.65rem; color:#94a3b8; margin-top:0.2rem;">
                         albedo = {phys.albedo_assumed}
                     </div>
                 </div>

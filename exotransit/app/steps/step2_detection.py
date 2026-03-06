@@ -21,7 +21,7 @@ def render():
     st.markdown(f"""
     <div class="step-header">Step 2 — Transit Detection</div>
     <h2 style="margin: 0 0 0.25rem 0; font-size: 2rem;">Box Least Squares Search</h2>
-    <p style="color: #64748b; margin: 0 0 1.5rem 0; font-family: 'DM Mono', monospace; font-size: 0.8rem;">
+    <p style="color: #94a3b8; margin: 0 0 1.5rem 0; font-family: 'DM Mono', monospace; font-size: 0.8rem;">
         Searching for periodic box-shaped dips across {len(lc.time):,} data points
     </p>
     """, unsafe_allow_html=True)
@@ -40,56 +40,50 @@ def render():
 
     # Run detection if not cached
     if st.session_state.all_bls is None:
-        progress = st.progress(0, text="Initializing BLS search…")
+        with st.spinner("Searching for planets…"):
+            try:
+                results = []
+                lc_lk = lk.LightCurve(time=lc.time, flux=lc.flux, flux_err=lc.flux_err)
+                max_planets = 6
 
-        try:
-            results = []
-            # Run iteratively so we can update progress
-            lc_lk = lk.LightCurve(time=lc.time, flux=lc.flux, flux_err=lc.flux_err)
-            max_planets = 6
+                for i in range(max_planets):
+                    current_lc = LightCurveData(
+                        time=np.asarray(lc_lk.time.value),
+                        flux=np.asarray(lc_lk.flux.value),
+                        flux_err=np.asarray(lc_lk.flux_err.value),
+                        mission=lc.mission,
+                        target_name=lc.target_name,
+                        sector_or_quarter=lc.sector_or_quarter,
+                        raw_time=lc.raw_time,
+                        raw_flux=lc.raw_flux,
+                    )
 
-            for i in range(max_planets):
-                progress.progress(
-                    int((i / max_planets) * 90),
-                    text=f"Searching for planet {i+1}…"
-                )
+                    result = run_bls(
+                        current_lc,
+                        min_period=2,
+                        max_period=12,
+                        max_period_grid_points=100_000,
+                    )
 
-                current_lc = LightCurveData(
-                    time=np.asarray(lc_lk.time.value),
-                    flux=np.asarray(lc_lk.flux.value),
-                    flux_err=np.asarray(lc_lk.flux_err.value),
-                    mission=lc.mission,
-                    target_name=lc.target_name,
-                    sector_or_quarter=lc.sector_or_quarter,
-                    raw_time=lc.raw_time,
-                    raw_flux=lc.raw_flux,
-                )
+                    if not result.is_reliable:
+                        break
 
-                result = run_bls(
-                    current_lc,
-                    min_period=2,
-                    max_period=12,
-                    max_period_grid_points=100_000,
-                )
+                    results.append(result)
 
-                if not result.is_reliable:
-                    break
+                    mask = lc_lk.create_transit_mask(
+                        period=result.best_period,
+                        transit_time=result.best_t0,
+                        duration=result.best_duration * 1.5,
+                    )
+                    lc_lk = lc_lk[~mask]
 
-                results.append(result)
+                st.session_state.all_bls = results
 
-                mask = lc_lk.create_transit_mask(
-                    period=result.best_period,
-                    transit_time=result.best_t0,
-                    duration=result.best_duration * 1.5,
-                )
-                lc_lk = lc_lk[~mask]
+            except Exception as e:
+                st.session_state.error = f"BLS detection failed: {e}"
+                st.rerun()
 
-            progress.progress(100, text=f"Found {len(results)} planet candidate(s)")
-            st.session_state.all_bls = results
-
-        except Exception as e:
-            st.session_state.error = f"BLS detection failed: {e}"
-            st.rerun()
+        st.rerun()
 
     all_bls = st.session_state.all_bls
 
@@ -110,6 +104,54 @@ def render():
     </div>
     """, unsafe_allow_html=True)
 
+    st.markdown("""
+    <div style="
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 0.75rem;
+        margin: 1rem 0 1.5rem 0;
+    ">
+        <div style="background: rgba(15,23,42,0.8); border: 1px solid rgba(148,163,184,0.12);
+                    border-radius: 8px; padding: 0.75rem 1rem;">
+            <div style="font-family: 'DM Mono', monospace; font-size: 0.8rem;
+                        color: #38bdf8; margin-bottom: 0.3rem;">P — Orbital Period</div>
+            <div style="font-size: 0.8rem; color: #cbd5e1; line-height: 1.5;">
+                How long one orbit takes in days. The most fundamental property of the system —
+                set by how far the planet is from its star.
+            </div>
+        </div>
+        <div style="background: rgba(15,23,42,0.8); border: 1px solid rgba(148,163,184,0.12);
+                    border-radius: 8px; padding: 0.75rem 1rem;">
+            <div style="font-family: 'DM Mono', monospace; font-size: 0.8rem;
+                        color: #38bdf8; margin-bottom: 0.3rem;">Depth — Transit Depth</div>
+            <div style="font-size: 0.8rem; color: #cbd5e1; line-height: 1.5;">
+                Fractional drop in brightness during transit. Proportional to
+                (R<sub>planet</sub> / R<sub>star</sub>)². A depth of 0.01 means the planet
+                blocks 1% of starlight.
+            </div>
+        </div>
+        <div style="background: rgba(15,23,42,0.8); border: 1px solid rgba(148,163,184,0.12);
+                    border-radius: 8px; padding: 0.75rem 1rem;">
+            <div style="font-family: 'DM Mono', monospace; font-size: 0.8rem;
+                        color: #38bdf8; margin-bottom: 0.3rem;">SDE — Signal Detection Efficiency</div>
+            <div style="font-size: 0.8rem; color: #cbd5e1; line-height: 1.5;">
+                How many standard deviations the peak in the BLS power spectrum stands above
+                the noise floor. SDE &gt; 7 is the Kepler pipeline's minimum threshold for a
+                credible detection.
+            </div>
+        </div>
+        <div style="background: rgba(15,23,42,0.8); border: 1px solid rgba(148,163,184,0.12);
+                    border-radius: 8px; padding: 0.75rem 1rem;">
+            <div style="font-family: 'DM Mono', monospace; font-size: 0.8rem;
+                        color: #38bdf8; margin-bottom: 0.3rem;">SNR — Signal-to-Noise Ratio</div>
+            <div style="font-size: 0.8rem; color: #cbd5e1; line-height: 1.5;">
+                Transit depth divided by its measurement uncertainty. Independent of SDE —
+                a deep transit can have low SNR if the photometric noise is large, and vice versa.
+            </div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
     # Per-planet plots
     for i, bls in enumerate(all_bls):
         st.markdown(f"""
@@ -117,7 +159,7 @@ def render():
             <span class="badge badge-blue">Planet {i+1}</span>
             <span style="font-family: 'DM Mono', monospace; font-size: 0.85rem; color: #94a3b8;">
                 P = {bls.best_period:.4f} d &nbsp;·&nbsp;
-                depth = {bls.transit_depth:.5f} &nbsp;·&nbsp;
+                depth = {bls.transit_depth * 100:.4f}% &nbsp;·&nbsp;
                 SDE = {bls.sde:.1f} &nbsp;·&nbsp;
                 SNR = {bls.snr:.1f}
             </span>

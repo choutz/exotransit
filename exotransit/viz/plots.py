@@ -108,10 +108,12 @@ def plot_light_curve_pipeline(lc: LightCurveData) -> go.Figure:
     fig.update_yaxes(title_text="Normalized Flux", row=2, col=1)
     fig.update_layout(
         **LAYOUT_DEFAULTS,
-        title=dict(text=f"{lc.target_name} — Light Curve Pipeline", x=0.5),
+        title=dict(text=f"{lc.target_name} — Light Curve Pipeline", x=0.5, xanchor="center", font=dict(color="#e2e8f0")),
         height=600,
     )
+    fig.update_annotations(font=dict(color="#e2e8f0", size=12))
 
+    fig.update_layout(legend_font_color="#e2e8f0")
     return fig
 
 
@@ -192,11 +194,12 @@ def plot_bls_power_spectrum(bls: BLSResult) -> go.Figure:
     fig.update_yaxes(title_text="BLS Power")
     fig.update_layout(
         **LAYOUT_DEFAULTS,
-        title=dict(text=f"BLS Power Spectrum — best period {bls.best_period:.4f} d", x=0.5),
+        title=dict(text=f"BLS Power Spectrum — best period {bls.best_period:.4f} d", x=0.5, xanchor="center", font=dict(color="#e2e8f0")),
         height=400,
         margin=dict(t=80),
     )
 
+    fig.update_layout(legend_font_color="#e2e8f0")
     return fig
 
 
@@ -312,12 +315,14 @@ def plot_phase_fold(bls: BLSResult, mcmc: MCMCResult | None = None) -> go.Figure
         **LAYOUT_DEFAULTS,
         title=dict(
             text=f"Phase-Folded Light Curve — P = {bls.best_period:.4f} d, "
-                 f"depth = {bls.transit_depth:.5f}",
-            x=0.5
+                 f"depth = {bls.transit_depth * 100:.4f}%",
+            x=0.5, xanchor="center", font=dict(color="#e2e8f0"),
         ),
         height=500 if has_model else 400,
     )
+    fig.update_annotations(font=dict(color="#e2e8f0", size=12))
 
+    fig.update_layout(legend_font_color="#e2e8f0")
     return fig
 
 
@@ -383,10 +388,11 @@ def plot_mcmc_spaghetti(bls: BLSResult, mcmc: MCMCResult, n_samples: int = 100) 
     fig.update_yaxes(title_text="Normalized Flux")
     fig.update_layout(
         **LAYOUT_DEFAULTS,
-        title=dict(text=f"MCMC Posterior — {n_samples} samples", x=0.5),
+        title=dict(text=f"MCMC Posterior — {n_samples} samples", x=0.5, xanchor="center", font=dict(color="#e2e8f0")),
         height=400,
     )
 
+    fig.update_layout(legend_font_color="#e2e8f0")
     return fig
 
 
@@ -467,11 +473,13 @@ def plot_corner(mcmc: MCMCResult) -> go.Figure:
 
     fig.update_layout(
         **LAYOUT_DEFAULTS,
-        title=dict(text="MCMC Parameter Correlations", x=0.5),
+        title=dict(text="MCMC Parameter Correlations", x=0.5, xanchor="center", font=dict(color="#e2e8f0")),
         height=900,
         width=900,
         margin=dict(l=100, r=60, t=100, b=100),
     )
+    fig.update_annotations(font=dict(color="#e2e8f0", size=11))
+    fig.update_layout(legend_font_color="#e2e8f0")
     return fig
 
 
@@ -520,9 +528,11 @@ def plot_posterior_histograms(mcmc: MCMCResult) -> go.Figure:
 
     fig.update_layout(
         **LAYOUT_DEFAULTS,
-        title=dict(text="MCMC Posterior Distributions", x=0.5),
+        title=dict(text="MCMC Posterior Distributions", x=0.5, xanchor="center", font=dict(color="#e2e8f0")),
         height=350,
     )
+    fig.update_annotations(font=dict(color="#e2e8f0", size=12))
+    fig.update_layout(legend_font_color="#e2e8f0")
     return fig
 
 
@@ -558,7 +568,7 @@ def plot_orrery(
             x=a * np.cos(theta),
             y=a * np.sin(theta),
             mode="lines",
-            line=dict(color="#334155", width=1),
+            line=dict(color="#475569", width=1),
             showlegend=False,
             hoverinfo="skip",
         ))
@@ -587,7 +597,7 @@ def plot_orrery(
         xref="paper", yref="paper",
         text="Orbits shown as circular — eccentricity not constrained by transit photometry alone",
         showarrow=False,
-        font=dict(color="#64748b", size=10),
+        font=dict(color="#94a3b8", size=10),
         xanchor="left",
         yanchor="bottom",
     )
@@ -595,10 +605,11 @@ def plot_orrery(
     fig.update_yaxes(title_text="AU", zeroline=False)
     fig.update_layout(
         **LAYOUT_DEFAULTS,
-        title=dict(text=f"{target_name} — Orbital Architecture", x=0.5),
+        title=dict(text=f"{target_name} — Orbital Architecture", x=0.5, xanchor="center", font=dict(color="#e2e8f0")),
         height=500,
     )
 
+    fig.update_layout(legend_font_color="#e2e8f0")
     return fig
 
 
@@ -632,11 +643,11 @@ def plot_planet_comparison(
                 colorscale="RdBu_r",
                 cmin=200, cmax=2500,
                 showscale=False,
-                line=dict(width=1.5, color="#94a3b8"),
+                line=dict(width=1.5, color="#cbd5e1"),
             ),
             text=[name],
             textposition="top center",
-            textfont=dict(size=11, color="#94a3b8"),
+            textfont=dict(size=11, color="#cbd5e1"),
             name=name,
             showlegend=False,
         ))
@@ -703,7 +714,7 @@ def plot_planet_comparison(
     )
     fig.update_layout(
         **LAYOUT_DEFAULTS,
-        title=dict(text=f"{target_name} — Planet Comparison", x=0.5),
+        title=dict(text=f"{target_name} — Planet Comparison", x=0.5, xanchor="center", font=dict(color="#e2e8f0")),
         height=550,
         margin=dict(l=70, r=150, t=80, b=70),
         legend=dict(
@@ -711,7 +722,8 @@ def plot_planet_comparison(
             bgcolor="rgba(15,23,42,0.8)",
             bordercolor="#475569",
             borderwidth=1,
-            font=dict(size=10),
+            font=dict(size=10, color="#e2e8f0"),
         ),
     )
+    fig.update_layout(legend_font_color="#e2e8f0")
     return fig

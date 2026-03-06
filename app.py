@@ -81,7 +81,7 @@ h1, h2, h3 {
 .metric-unit {
     font-family: 'DM Mono', monospace;
     font-size: 0.75rem;
-    color: #64748b;
+    color: #94a3b8;
     margin-top: 0.1rem;
 }
 
@@ -115,7 +115,7 @@ h1, h2, h3 {
     padding: 1rem 1.25rem;
     margin: 1rem 0;
     font-size: 0.9rem;
-    color: #94a3b8;
+    color: #cbd5e1;
     line-height: 1.6;
 }
 
@@ -171,7 +171,7 @@ hr { border-color: rgba(148, 163, 184, 0.1) !important; }
 .streamlit-expanderHeader {
     font-family: 'DM Mono', monospace !important;
     font-size: 0.8rem !important;
-    color: #64748b !important;
+    color: #94a3b8 !important;
     letter-spacing: 0.05em !important;
 }
 </style>
@@ -229,7 +229,7 @@ def _render_progress():
                 color = "#f1f5f9"
                 icon = str(i + 1)
             else:
-                color = "#334155"
+                color = "#64748b"
                 icon = str(i + 1)
 
             st.markdown(f"""
@@ -278,7 +278,7 @@ st.markdown("""
     ">ExoTransit</h1>
     <p style="
         font-size: 1rem;
-        color: #64748b;
+        color: #94a3b8;
         margin-top: 0.5rem;
         font-style: italic;
         font-family: 'Instrument Serif', serif;

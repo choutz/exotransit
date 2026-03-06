@@ -4,11 +4,11 @@ exotransit/app/steps/step0_search.py
 import streamlit as st
 
 EXAMPLE_TARGETS = [
-    ("Kepler-5 b",  "Hot Jupiter, strong signal"),
-    ("Kepler-11",   "6-planet system"),
-    ("Kepler-22 b", "Super-Earth in habitable zone"),
-    ("Kepler-7 b",  "Inflated hot Jupiter"),
-    ("HD 209458",   "First transiting exoplanet"),
+    ("Kepler-7",  "Inflated hot Jupiter, single planet"),
+    ("Kepler-9",  "First multi-planet system confirmed"),
+    ("Kepler-15", "Hot Jupiter, quiet host star"),
+    ("Kepler-80", "5-planet resonant chain"),
+    ("Kepler-11", "6-planet system, benchmark test"),
 ]
 
 def render():
@@ -34,7 +34,7 @@ def render():
     st.markdown('<div class="step-header">Target Star</div>', unsafe_allow_html=True)
     target = st.text_input(
         label="target",
-        placeholder="e.g. Kepler-5 b, Kepler-11, HD 209458",
+        placeholder="e.g. Kepler-7, Kepler-11, Kepler-80",
         label_visibility="collapsed",
         value=st.session_state.get("prefill_target", ""),
     )
@@ -46,7 +46,7 @@ def render():
         font-size: 0.65rem;
         letter-spacing: 0.1em;
         text-transform: uppercase;
-        color: #475569;
+        color: #94a3b8;
         margin: 0.75rem 0 0.5rem 0;
     ">Try an example</div>
     """, unsafe_allow_html=True)
@@ -55,24 +55,7 @@ def render():
     cols = st.columns(5)
     for i, (name, desc) in enumerate(EXAMPLE_TARGETS):
         with cols[i]:
-            st.markdown(f"""
-            <div style="
-                background: rgba(30,41,59,0.6);
-                border: 1px solid rgba(148,163,184,0.15);
-                border-radius: 6px;
-                padding: 0.4rem 0.3rem;
-                text-align: center;
-                font-family: 'DM Mono', monospace;
-                font-size: 0.7rem;
-                color: #94a3b8;
-                margin-bottom: 0.25rem;
-                white-space: nowrap;
-                overflow: hidden;
-                text-overflow: ellipsis;
-                title="{desc}";
-            ">{name}</div>
-            """, unsafe_allow_html=True)
-            if st.button("↑", key=f"chip_{i}", help=f"{name} — {desc}",
+            if st.button(name, key=f"chip_{i}", help=desc,
                         use_container_width=True):
                 st.session_state.prefill_target = name
                 st.session_state.target = name
@@ -94,7 +77,7 @@ def render():
     <div style="
         margin-top: 2rem;
         font-size: 0.75rem;
-        color: #334155;
+        color: #94a3b8;
         text-align: center;
         font-family: 'DM Mono', monospace;
         line-height: 1.6;

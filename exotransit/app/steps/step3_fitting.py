@@ -24,7 +24,7 @@ def render():
     st.markdown("""
     <div class="step-header">Step 3 — Bayesian Transit Fitting</div>
     <h2 style="margin: 0 0 0.25rem 0; font-size: 2rem;">MCMC Parameter Estimation</h2>
-    <p style="color: #64748b; margin: 0 0 1.5rem 0; font-family: 'DM Mono', monospace; font-size: 0.8rem;">
+    <p style="color: #94a3b8; margin: 0 0 1.5rem 0; font-family: 'DM Mono', monospace; font-size: 0.8rem;">
         Mapping the full posterior probability distribution over transit parameters
     </p>
     """, unsafe_allow_html=True)
@@ -67,6 +67,7 @@ def render():
                     st.rerun()
 
         st.session_state.all_mcmc = all_mcmc
+        st.rerun()  # Fresh render so plots don't appear alongside the spinner
 
     all_mcmc = st.session_state.all_mcmc
 
@@ -80,7 +81,7 @@ def render():
         <div style="margin: 2rem 0 0.75rem 0;">
             <span class="badge badge-blue">Planet {i+1}</span>
             <span class="badge {converged_badge}">{converged_text}</span>
-            <span style="font-family: 'DM Mono', monospace; font-size: 0.8rem; color: #64748b;">
+            <span style="font-family: 'DM Mono', monospace; font-size: 0.8rem; color: #94a3b8;">
                 acceptance = {mcmc.acceptance_fraction:.3f}
             </span>
         </div>
@@ -102,6 +103,64 @@ def render():
 
         # Advanced: spaghetti + corner in expander
         with st.expander(f"Advanced — Planet {i+1} posterior detail"):
+
+            st.markdown("""
+            <div style="
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 0.75rem;
+                margin: 0.5rem 0 1.25rem 0;
+            ">
+                <div style="background: rgba(15,23,42,0.8); border: 1px solid rgba(148,163,184,0.12);
+                            border-radius: 8px; padding: 0.75rem 1rem;">
+                    <div style="font-family: 'DM Mono', monospace; font-size: 0.8rem;
+                                color: #38bdf8; margin-bottom: 0.3rem;">Posterior Spaghetti</div>
+                    <div style="font-size: 0.8rem; color: #cbd5e1; line-height: 1.5;">
+                        Each faint line is one random draw from the MCMC chain — a transit model
+                        that is consistent with the data. The spread of lines shows the range of
+                        plausible solutions. A tight bundle means the data strongly constrain the
+                        parameters; a wide spread means genuine uncertainty. The solid line is the
+                        posterior median.
+                    </div>
+                </div>
+                <div style="background: rgba(15,23,42,0.8); border: 1px solid rgba(148,163,184,0.12);
+                            border-radius: 8px; padding: 0.75rem 1rem;">
+                    <div style="font-family: 'DM Mono', monospace; font-size: 0.8rem;
+                                color: #38bdf8; margin-bottom: 0.3rem;">Parameter Correlations</div>
+                    <div style="font-size: 0.8rem; color: #cbd5e1; line-height: 1.5;">
+                        The contour blobs show how pairs of parameters are correlated in the
+                        posterior. A diagonal blob means the two parameters trade off against
+                        each other — you can't pin one down without knowing the other. Diagonals
+                        on the corner plot indicate the parameters are independent. The histograms
+                        on the diagonal show each parameter's marginal distribution.
+                    </div>
+                </div>
+                <div style="background: rgba(15,23,42,0.8); border: 1px solid rgba(148,163,184,0.12);
+                            border-radius: 8px; padding: 0.75rem 1rem;">
+                    <div style="font-family: 'DM Mono', monospace; font-size: 0.8rem;
+                                color: #38bdf8; margin-bottom: 0.3rem;">Planet Radius (R⊕)</div>
+                    <div style="font-size: 0.8rem; color: #cbd5e1; line-height: 1.5;">
+                        Derived from the radius ratio r<sub>p</sub> = R<sub>planet</sub> /
+                        R<sub>star</sub> fitted by MCMC, multiplied by the stellar radius from
+                        the NASA archive. Uncertainty propagates from both the MCMC posterior
+                        and the archive stellar radius uncertainty.
+                    </div>
+                </div>
+                <div style="background: rgba(15,23,42,0.8); border: 1px solid rgba(148,163,184,0.12);
+                            border-radius: 8px; padding: 0.75rem 1rem;">
+                    <div style="font-family: 'DM Mono', monospace; font-size: 0.8rem;
+                                color: #38bdf8; margin-bottom: 0.3rem;">Impact Parameter (b)</div>
+                    <div style="font-size: 0.8rem; color: #cbd5e1; line-height: 1.5;">
+                        The projected distance between the planet's path and the centre of the
+                        stellar disk, in units of stellar radii. b = 0 is a central transit;
+                        b = 1 is grazing. Higher b produces a shallower, shorter transit and
+                        is correlated with r<sub>p</sub> — a grazing geometry can mimic a
+                        smaller planet.
+                    </div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
             c1, c2 = st.columns([1, 1])
             with c1:
                 st.plotly_chart(
@@ -120,7 +179,7 @@ def render():
                 for note in mcmc.convergence_notes:
                     st.markdown(f"""
                     <div style="font-family: 'DM Mono', monospace; font-size: 0.75rem;
-                                color: #64748b; margin: 0.25rem 0;">
+                                color: #94a3b8; margin: 0.25rem 0;">
                         · {note}
                     </div>
                     """, unsafe_allow_html=True)

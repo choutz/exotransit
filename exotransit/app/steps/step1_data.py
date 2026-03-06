@@ -20,7 +20,7 @@ def render():
     <h2 style="margin: 0 0 0.25rem 0; font-size: 2rem;">
         {target}
     </h2>
-    <p style="color: #64748b; margin: 0 0 1.5rem 0; font-family: 'DM Mono', monospace; font-size: 0.8rem;">
+    <p style="color: #94a3b8; margin: 0 0 1.5rem 0; font-family: 'DM Mono', monospace; font-size: 0.8rem;">
         Fetching photometry from NASA MAST archive
     </p>
     """, unsafe_allow_html=True)
@@ -118,10 +118,10 @@ def render():
             st.rerun()
 
 
-def _metric(value: str, unit: str, label: str):
+def _metric(value: str, unit: str, label: str, val_style: str = ""):
     st.markdown(f"""
-    <div class="planet-card" style="padding: 1rem;">
-        <div class="metric-val">{value}</div>
+    <div class="planet-card" style="padding: 1rem; height: 7rem; box-sizing: border-box;">
+        <div class="metric-val" style="{val_style}">{value}</div>
         <div class="metric-unit">{unit}</div>
         <div class="metric-label">{label}</div>
     </div>
