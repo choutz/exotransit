@@ -203,13 +203,14 @@ def plot_bls_power_spectrum(bls: BLSResult) -> go.Figure:
     return fig
 
 
-def plot_phase_fold(bls: BLSResult, mcmc: MCMCResult | None = None) -> go.Figure:
+def plot_phase_fold(bls: BLSResult, mcmc: MCMCResult | None = None, zoom_factor: float = 4.0) -> go.Figure:
     """
     Phase-folded light curve with binned points and optional batman model overlay.
 
     Raw folded points shown as faint gray. Binned points reveal transit shape.
     If MCMCResult provided, overlays best-fit batman model and residuals panel.
     Limb darkening fixed to mcmc.u1, mcmc.u2 (Claret values).
+    zoom_factor: x-axis shows ±(zoom_factor * best_duration). None = full range.
     """
     has_model = mcmc is not None
     rows = 2 if has_model else 1
@@ -322,11 +323,16 @@ def plot_phase_fold(bls: BLSResult, mcmc: MCMCResult | None = None) -> go.Figure
     )
     fig.update_annotations(font=dict(color="#e2e8f0", size=12))
 
+    if zoom_factor is not None:
+        x_half = max(zoom_factor * bls.best_duration, 0.05)
+        for row in range(1, rows + 1):
+            fig.update_xaxes(range=[-x_half, x_half], row=row, col=1)
+
     fig.update_layout(legend_font_color="#e2e8f0")
     return fig
 
 
-def plot_mcmc_spaghetti(bls: BLSResult, mcmc: MCMCResult, n_samples: int = 100) -> go.Figure:
+def plot_mcmc_spaghetti(bls: BLSResult, mcmc: MCMCResult, n_samples: int = 100, zoom_factor: float = 4.0) -> go.Figure:
     """
     MCMC posterior spaghetti plot: n_samples random draws from the chain
     plotted as faint lines over the phase-folded data.
@@ -349,7 +355,11 @@ def plot_mcmc_spaghetti(bls: BLSResult, mcmc: MCMCResult, n_samples: int = 100) 
         showlegend=True,
     ))
 
-    t_model = np.linspace(t.min(), t.max(), 500)
+    if zoom_factor is not None:
+        x_half = max(zoom_factor * bls.best_duration, 0.05)
+        t_model = np.linspace(-x_half, x_half, 500)
+    else:
+        t_model = np.linspace(t.min(), t.max(), 500)
     indices = np.random.choice(len(mcmc.samples), size=n_samples, replace=False)
 
     for i, idx in enumerate(indices):
@@ -391,6 +401,10 @@ def plot_mcmc_spaghetti(bls: BLSResult, mcmc: MCMCResult, n_samples: int = 100) 
         title=dict(text=f"MCMC Posterior — {n_samples} samples", x=0.5, xanchor="center", font=dict(color="#e2e8f0")),
         height=400,
     )
+
+    if zoom_factor is not None:
+        x_half = max(zoom_factor * bls.best_duration, 0.05)
+        fig.update_xaxes(range=[-x_half, x_half])
 
     fig.update_layout(legend_font_color="#e2e8f0")
     return fig
@@ -609,6 +623,125 @@ def plot_orrery(
         height=500,
     )
 
+    fig.update_layout(legend_font_color="#e2e8f0")
+    return fig
+
+
+def plot_transit_mask(
+    time: np.ndarray,
+    flux: np.ndarray,
+    mask: np.ndarray,
+    bls: BLSResult,
+    planet_number: int,
+    target_name: str,
+) -> go.Figure:
+    """
+    Two-panel masking diagnostic:
+      Left:  full light curve, masked points highlighted in red.
+      Right: phase-folded view zoomed on the transit, showing exactly
+             which points were removed and the mask window.
+    """
+    kept = ~mask
+    n_masked = int(mask.sum())
+    n_kept = int(kept.sum())
+
+    phase_days = ((time - bls.best_t0) % bls.best_period)
+    phase_days[phase_days > bls.best_period / 2] -= bls.best_period
+
+    zoom = 4.0 * bls.best_duration
+    half_mask = bls.best_duration * 1.5
+
+    fig = make_subplots(
+        rows=1, cols=2,
+        subplot_titles=(
+            f"Full light curve — {n_masked:,} in-transit points masked",
+            f"Phase fold at P = {bls.best_period:.4f} d — shaded = mask window",
+        ),
+        horizontal_spacing=0.10,
+    )
+
+    # Panel 1: full light curve
+    fig.add_trace(go.Scattergl(
+        x=time[kept], y=flux[kept],
+        mode="markers",
+        marker=dict(size=1.5, color="#94a3b8", opacity=0.4),
+        name=f"Kept ({n_kept:,})",
+        showlegend=True,
+    ), row=1, col=1)
+
+    fig.add_trace(go.Scattergl(
+        x=time[mask], y=flux[mask],
+        mode="markers",
+        marker=dict(size=4, color="#f43f5e", opacity=0.85),
+        name=f"Masked ({n_masked:,})",
+        showlegend=True,
+    ), row=1, col=1)
+
+    # Panel 2: phase fold, zoomed on transit
+    in_zoom = np.abs(phase_days) < zoom
+    if in_zoom.sum() > 5:
+        y_lo = float(flux[in_zoom].min()) - 0.003
+        y_hi = float(flux[in_zoom].max()) + 0.003
+    else:
+        y_lo = float(flux.min()) - 0.003
+        y_hi = float(flux.max()) + 0.003
+
+    # Shaded mask window — rendered first so data points draw on top
+    fig.add_trace(go.Scatter(
+        x=[-half_mask, -half_mask, half_mask, half_mask],
+        y=[y_lo, y_hi, y_hi, y_lo],
+        fill="toself",
+        fillcolor="rgba(244,63,94,0.10)",
+        line=dict(color="rgba(244,63,94,0.45)", width=1, dash="dash"),
+        mode="lines",
+        showlegend=False,
+        hoverinfo="skip",
+    ), row=1, col=2)
+
+    fig.add_trace(go.Scattergl(
+        x=phase_days[kept], y=flux[kept],
+        mode="markers",
+        marker=dict(size=2, color="#94a3b8", opacity=0.3),
+        showlegend=False,
+    ), row=1, col=2)
+
+    fig.add_trace(go.Scattergl(
+        x=phase_days[mask], y=flux[mask],
+        mode="markers",
+        marker=dict(size=5, color="#f43f5e", opacity=0.85),
+        showlegend=False,
+    ), row=1, col=2)
+
+    fig.update_xaxes(title_text="Time (BKJD days)", row=1, col=1)
+    fig.update_xaxes(
+        title_text="Time from transit center (days)",
+        range=[-zoom, zoom],
+        row=1, col=2,
+    )
+    fig.update_yaxes(title_text="Normalized Flux", row=1, col=1)
+    fig.update_yaxes(range=[y_lo, y_hi], row=1, col=2)
+
+    fig.update_layout(
+        **LAYOUT_DEFAULTS,
+        title=dict(
+            text=(
+                f"{target_name} — Planet {planet_number}  "
+                f"·  P = {bls.best_period:.4f} d  "
+                f"·  depth = {bls.transit_depth * 100:.4f}%"
+            ),
+            x=0.5, xanchor="center", font=dict(color="#e2e8f0", size=12),
+        ),
+        height=350,
+        margin=dict(t=80, b=50),
+        legend=dict(
+            x=0.01, y=0.01,
+            bgcolor="rgba(15,23,42,0.7)",
+            bordercolor="#475569",
+            borderwidth=1,
+            font=dict(size=10),
+        ),
+    )
+    fig.update_annotations(font=dict(color="#e2e8f0", size=11))
     fig.update_layout(legend_font_color="#e2e8f0")
     return fig
 

@@ -26,10 +26,11 @@ def render():
     """, unsafe_allow_html=True)
 
     # Run if not cached
+    conf = st.session_state.conf
     if st.session_state.lc is None:
         with st.spinner("Downloading light curve from NASA MAST…"):
             try:
-                lc = fetch_stitched_light_curve(target, mission="Kepler", max_quarters=8)
+                lc = fetch_stitched_light_curve(target, mission="Kepler", max_quarters=conf.max_quarters)
                 st.session_state.lc = lc
             except Exception as e:
                 st.session_state.error = (
@@ -55,6 +56,8 @@ def render():
                 )
                 st.rerun()
 
+        st.rerun()  # trigger detection section to appear
+
     lc      = st.session_state.lc
     stellar = st.session_state.stellar
     ld      = st.session_state.ld
@@ -63,13 +66,34 @@ def render():
     st.markdown('<div class="step-header">Host Star</div>', unsafe_allow_html=True)
     c1, c2, c3, c4 = st.columns(4)
     with c1:
-        _metric(f"{stellar.radius:.3f}", "R☉", "Stellar radius")
+        _metric(f"{stellar.radius:.3f}", "R☉", "Radius (solar radii)")
     with c2:
-        _metric(f"{stellar.mass:.3f}", "M☉", "Stellar mass")
+        _metric(f"{stellar.mass:.3f}", "M☉", "Mass (solar masses)")
     with c3:
         _metric(f"{stellar.teff:.0f}", "K", "Effective temperature")
     with c4:
         _metric(f"{ld.u1:.3f}, {ld.u2:.3f}", "", "Limb darkening u₁, u₂")
+        with st.popover("What is this?"):
+            st.markdown(r"""
+**Limb darkening**
+
+Stars are not uniformly bright disks — they appear dimmer toward their edges
+(the "limb") than at their center. This happens because the edge of the star shows
+us cooler, higher-altitude gas, which emits less light.
+
+The effect changes the shape of a transit: the brightness drop deepens as the
+planet crosses the bright center, and shallows near the edge. Ignoring it would
+give wrong planet radii.
+
+We use the **quadratic limb darkening law**:
+
+$$I(\mu) = 1 - u_1(1 - \mu) - u_2(1 - \mu)^2$$
+
+where $\mu = \cos\theta$ is the angle from disk center ($\mu = 1$) to limb
+($\mu = 0$), and $u_1$, $u_2$ are coefficients predicted from stellar atmosphere
+models for this star's temperature, gravity, and metallicity
+(Claret & Bloemen 2011).
+""")
 
     st.markdown("<div style='margin: 1rem 0;'></div>", unsafe_allow_html=True)
 
@@ -104,18 +128,6 @@ def render():
     with c3:
         _metric(f"{cadence:.0f}", "min", "Cadence")
 
-    st.markdown("<div style='margin: 2rem 0;'></div>", unsafe_allow_html=True)
-
-    col1, col2 = st.columns([3, 1])
-    with col2:
-        if st.button("Search for planets →", width='stretch', type="primary"):
-            st.session_state.step = 2
-            st.rerun()
-    with col1:
-        if st.button("← Start over", use_container_width=False):
-            for k in list(st.session_state.keys()):
-                del st.session_state[k]
-            st.rerun()
 
 
 def _metric(value: str, unit: str, label: str, val_style: str = ""):

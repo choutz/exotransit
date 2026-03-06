@@ -3,18 +3,27 @@ from exotransit.detection.multi_planet import find_all_planets
 from tests.helpers import get_light_curve
 from config import MEDIUM, FULL
 
-conf = FULL
+conf = MEDIUM
 """
-passed with full conf: 
-Kepler-7, Kepler-9, Kepler-15, and Kepler-80 are perfect 
-Kepler-11 is great (4/6)
+passed with MEDIUM conf: 
+Kepler-7 perfect 1 planet
+Kepler-144 got 3 / 2
+kepler-9 gets 2/3 and has some uncertainty problems
+kepler 15 worked but the posterior distributions  / uncertainties are horrible 
+Kepler-11 found six
+
+AFTER FIXES
+kepler 7 still one planet but still wrong radius. seems very confident in the wrong radius. why?
+Kepler-144 fixed  
+
+
 """
 
 
 if __name__ == "__main__":
 
     # for tn in [7,11,80,9,15]:
-    for tn in [15]:
+    for tn in [144]:
 
         lc = get_light_curve(f"Kepler-{tn}", mission="Kepler", max_quarters=conf.max_quarters)
         print(f"  Target:   {lc.target_name}")

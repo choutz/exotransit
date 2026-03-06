@@ -242,6 +242,16 @@ def run_bls(
         f"BLS result: period={best_period:.4f}d, depth={transit_depth:.6f}, "
         f"SDE={sde:.1f}, SNR={snr:.1f}, reliable={is_reliable}"
     )
+    if not is_reliable:
+        logger.warning(
+            f"[{lc.target_name}] BLS candidate REJECTED — "
+            f"period={best_period:.4f}d, depth={transit_depth*1e6:.1f}ppm, "
+            f"SDE={sde:.2f}, SNR={snr:.2f}, "
+            f"in_transit_pts={int(in_transit.sum())}, "
+            f"n_transits_expected={((lc.time.max()-lc.time.min())/best_period):.1f}"
+        )
+        for flag in flags:
+            logger.warning(f"  [{lc.target_name}]  {flag}")
 
     return BLSResult(
         best_period=best_period,

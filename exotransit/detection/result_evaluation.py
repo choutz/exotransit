@@ -153,5 +153,15 @@ def assess_reliability(
             f"verify this is not a harmonic of a stronger signal"
         )
 
+    # ── TCE-15: Absolute depth floor for long-cadence data ────────────────────
+    # Kepler 30-min cadence noise floor is ~50-100 ppm for typical targets.
+    # Detections below 60 ppm are unreliable without independent confirmation.
+    cadence_hours = np.median(np.diff(lc.time)) * 24
+    if cadence_hours > 0.6 and transit_depth < 60e-6:
+        flags.append(
+            f"TCE-15: Depth={transit_depth * 1e6:.1f} ppm below 60 ppm long-cadence "
+            f"noise floor — unreliable without independent confirmation"
+        )
+
     is_reliable = len(flags) == 0
     return is_reliable, flags

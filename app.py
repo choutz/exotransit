@@ -9,6 +9,7 @@ Run with:
 """
 
 import streamlit as st
+from config import FULL, MEDIUM
 
 st.set_page_config(
     page_title="ExoTransit",
@@ -180,12 +181,13 @@ hr { border-color: rgba(148, 163, 184, 0.1) !important; }
 # ── Session state bootstrap ──────────────────────────────────────────────────
 def _init_state():
     defaults = dict(
-        step=0,            # 0=search, 1=data, 2=detection, 3=fitting, 4=results
+        conf=MEDIUM,
         target=None,
         lc=None,
         stellar=None,
         ld=None,
         all_bls=None,
+        all_bls_mask_data=None,
         all_mcmc=None,
         all_physics=None,
         error=None,
@@ -197,7 +199,6 @@ def _init_state():
 
 _init_state()
 
-# ── Router ───────────────────────────────────────────────────────────────────
 from exotransit.app.steps import (
     step0_search,
     step1_data,
@@ -206,56 +207,7 @@ from exotransit.app.steps import (
     step4_results,
 )
 
-STEPS = [
-    step0_search.render,
-    step1_data.render,
-    step2_detection.render,
-    step3_fitting.render,
-    step4_results.render,
-]
-
-# ── Progress indicator ───────────────────────────────────────────────────────
-STEP_LABELS = ["Search", "Data", "Detection", "Fitting", "Results"]
-
-def _render_progress():
-    current = st.session_state.step
-    cols = st.columns(len(STEP_LABELS))
-    for i, (col, label) in enumerate(zip(cols, STEP_LABELS)):
-        with col:
-            if i < current:
-                color = "#38bdf8"
-                icon = "✓"
-            elif i == current:
-                color = "#f1f5f9"
-                icon = str(i + 1)
-            else:
-                color = "#64748b"
-                icon = str(i + 1)
-
-            st.markdown(f"""
-            <div style="text-align:center; padding: 0.5rem 0;">
-                <div style="
-                    width: 28px; height: 28px;
-                    border-radius: 50%;
-                    background: {'rgba(56,189,248,0.15)' if i == current else 'transparent'};
-                    border: 1.5px solid {color};
-                    color: {color};
-                    font-family: 'DM Mono', monospace;
-                    font-size: 0.7rem;
-                    display: inline-flex;
-                    align-items: center;
-                    justify-content: center;
-                    margin-bottom: 0.3rem;
-                ">{icon}</div>
-                <div style="
-                    font-family: 'DM Mono', monospace;
-                    font-size: 0.65rem;
-                    letter-spacing: 0.1em;
-                    text-transform: uppercase;
-                    color: {color};
-                ">{label}</div>
-            </div>
-            """, unsafe_allow_html=True)
+_DIVIDER = "<hr style='border-color: rgba(148,163,184,0.1); margin: 2.5rem 0;'>"
 
 # ── Header ───────────────────────────────────────────────────────────────────
 st.markdown("""
@@ -286,11 +238,6 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# Only show progress bar after search
-if st.session_state.step > 0:
-    _render_progress()
-    st.markdown("<div style='margin: 1.5rem 0;'></div>", unsafe_allow_html=True)
-
 # ── Error display ────────────────────────────────────────────────────────────
 if st.session_state.error:
     st.error(st.session_state.error)
@@ -299,7 +246,22 @@ if st.session_state.error:
             del st.session_state[k]
         st.rerun()
 
-# ── Render current step ──────────────────────────────────────────────────────
+# ── Single-page pipeline ─────────────────────────────────────────────────────
 else:
-    step_fn = STEPS[min(st.session_state.step, len(STEPS) - 1)]
-    step_fn()
+    step0_search.render()
+
+    if st.session_state.target:
+        st.markdown(_DIVIDER, unsafe_allow_html=True)
+        step1_data.render()
+
+    if st.session_state.lc is not None:
+        st.markdown(_DIVIDER, unsafe_allow_html=True)
+        step2_detection.render()
+
+    if st.session_state.all_bls is not None:
+        st.markdown(_DIVIDER, unsafe_allow_html=True)
+        step3_fitting.render()
+
+    if st.session_state.all_mcmc is not None:
+        st.markdown(_DIVIDER, unsafe_allow_html=True)
+        step4_results.render()

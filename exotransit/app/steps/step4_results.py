@@ -158,13 +158,7 @@ def render():
 
     st.markdown("<div style='margin: 2rem 0;'></div>", unsafe_allow_html=True)
 
-    col1, col2 = st.columns([3, 1])
-    with col2:
-        if st.button("Analyze another star →", width='stretch', type="primary"):
-            for k in list(st.session_state.keys()):
-                del st.session_state[k]
-            st.rerun()
-    with col1:
-        if st.button("← Back to fitting"):
-            st.session_state.step = 3
-            st.rerun()
+    if st.button("Analyze another star →", type="primary"):
+        for k in list(st.session_state.keys()):
+            del st.session_state[k]
+        st.rerun()

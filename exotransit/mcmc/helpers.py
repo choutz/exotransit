@@ -51,18 +51,30 @@ def _transit_model(
     return m.light_curve(p)
 
 
-def _log_prior(params: np.ndarray) -> float:
-    """Uniform priors within physically meaningful bounds."""
+def _log_prior(params: np.ndarray, snr: float = 0.0) -> float:
+    """
+    Log prior. Hard bounds on all parameters plus a Gaussian soft prior on b.
+
+    The soft prior penalizes grazing transits (high b) for strong detections.
+    For high-SNR signals a grazing geometry is implausible — the transit shape
+    would be V-shaped, not box-shaped. Width scales with SNR: tight for strong
+    signals, loose for weak ones where grazing is genuinely uncertain.
+    """
     t0, rp, b = params
 
     if not (-0.5 < t0 < 0.5):
         return -np.inf
-    if not (0.0 < rp < 0.3):
+    if not (1e-4 < rp < 0.3):
         return -np.inf
     if not (0.0 <= b < 1.0):
         return -np.inf
 
-    return 0.0
+    # Soft Gaussian prior on b centered at 0 (central transit).
+    # b_sigma widens for low-SNR detections where grazing is uncertain.
+    b_sigma = max(0.3, 1.0 / (1.0 + snr / 20.0))
+    lp = -0.5 * (b / b_sigma) ** 2
+
+    return lp
 
 
 def _log_likelihood(
@@ -93,9 +105,10 @@ def _log_likelihood(
 def _log_probability(
     params, time, flux, flux_err, period,
     u1, u2, stellar_mass, stellar_radius, exp_time_days,
+    snr: float = 0.0,
 ) -> float:
     """Log posterior = log prior + log likelihood."""
-    lp = _log_prior(params)
+    lp = _log_prior(params, snr=snr)
     if not np.isfinite(lp):
         return -np.inf
     return lp + _log_likelihood(

@@ -11,6 +11,12 @@ EXAMPLE_TARGETS = [
     ("Kepler-11", "6-planet system, benchmark test"),
 ]
 
+_RESULT_KEYS = ["lc", "stellar", "ld", "all_bls", "all_bls_mask_data", "all_mcmc", "all_physics", "error"]
+
+def _reset_results():
+    for k in _RESULT_KEYS:
+        st.session_state[k] = None
+
 def render():
     st.markdown("""
     <style>
@@ -57,9 +63,9 @@ def render():
         with cols[i]:
             if st.button(name, key=f"chip_{i}", help=desc,
                         use_container_width=True):
+                _reset_results()
                 st.session_state.prefill_target = name
                 st.session_state.target = name
-                st.session_state.step = 1
                 st.rerun()
 
     st.markdown("<div style='margin: 1.5rem 0;'></div>", unsafe_allow_html=True)
@@ -69,8 +75,8 @@ def render():
         if not t:
             st.warning("Please enter a star name.")
         else:
+            _reset_results()
             st.session_state.target = t
-            st.session_state.step = 1
             st.rerun()
 
     st.markdown("""

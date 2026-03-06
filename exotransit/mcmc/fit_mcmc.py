@@ -189,17 +189,16 @@ def run_mcmc(
     p0_center = np.array([0.0, rp_init, 0.2])
     n_params = len(p0_center)
 
-    scatter = np.array([1e-3, 1e-3, 0.05])
+    scatter = np.array([1e-3, rp_init * 0.5, 0.3])
     p0 = p0_center + scatter * np.random.randn(n_walkers, n_params)
-    p0[:, 1] = np.clip(p0[:, 1], 1e-4, 0.29)   # rp
-    p0[:, 2] = np.clip(p0[:, 2], 0.0, 0.99)     # b
-
+    p0[:, 1] = np.clip(p0[:, 1], 1e-4, 0.29)  # rp
+    p0[:, 2] = np.clip(p0[:, 2], 0.0, 0.95)  # b: cap at 0.95, not 0.99
     sampler = emcee.EnsembleSampler(
         n_walkers,
         n_params,
         _log_probability,
         args=(time, flux, flux_err, period, u1, u2,
-              stellar_mass, stellar_radius, exp_time_days),
+              stellar_mass, stellar_radius, exp_time_days, bls.snr),
     )
 
     logger.info(f"Burn-in: {n_burnin} steps...")

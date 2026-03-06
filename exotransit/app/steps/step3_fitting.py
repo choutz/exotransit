@@ -20,6 +20,7 @@ def render():
     stellar = st.session_state.stellar
     ld      = st.session_state.ld
     all_bls = st.session_state.all_bls
+    conf = st.session_state.conf
 
     st.markdown("""
     <div class="step-header">Step 3 — Bayesian Transit Fitting</div>
@@ -29,19 +30,85 @@ def render():
     </p>
     """, unsafe_allow_html=True)
 
-    st.markdown("""
+    st.markdown(f"""
     <div class="explain-box">
-        <strong>Why not just fit a curve?</strong> A least-squares fit gives you one answer
-        with symmetric error bars — but transit parameters are often correlated and their
-        uncertainties are asymmetric. Markov Chain Monte Carlo (MCMC) instead maps the full
-        <em>posterior distribution</em>: the complete probability landscape over all parameter
-        combinations consistent with the data.<br><br>
-        We run 32 parallel walkers for 5,000 steps each, sampling planet radius, impact
-        parameter, and transit center time simultaneously. Limb darkening is fixed to
-        theoretically predicted values from stellar atmosphere models (Claret &amp; Bloemen 2011)
-        — the photometric cadence is insufficient to constrain it independently.
+        <strong>BLS found the periods. Now we measure the planets.</strong>
+        Rather than fitting a single best curve, MCMC maps the full space of transit shapes
+        consistent with the data — {conf.mcmc.n_walkers} parallel "walkers" each take
+        {conf.mcmc.n_steps:,} steps through parameter space, concentrating where the data
+        actually supports the model. The resulting cloud of solutions
+        <em>is</em> the uncertainty: wide spread = genuinely uncertain; tight cluster = well constrained.
     </div>
     """, unsafe_allow_html=True)
+
+    with st.expander("What is being fit, and how noise becomes uncertainty"):
+        st.markdown("""
+**From BLS box to physical transit model**
+
+BLS finds the period using a rough rectangular box — fast, but not physically precise.
+For the actual parameter measurement we fit the **Mandel–Agol transit model**: a
+mathematically exact computation of how much starlight a spherical planet blocks at
+every moment as it crosses a limb-darkened stellar disk.
+
+The three free parameters are:
+- **t₀** — transit center time
+- **rp = Rp / R★** — planet-to-star radius ratio
+- **b** — impact parameter: how centrally the planet crosses (0 = central, 1 = grazing)
+
+The transit depth (fractional brightness drop) is:
+""")
+        st.latex(r"\delta = \left(\frac{R_p}{R_\star}\right)^2 = r_p^2")
+        st.markdown("""
+Planet radius in physical units is then:
+""")
+        st.latex(r"R_p = r_p \times R_\star")
+        st.markdown("""
+Limb darkening — stars appear dimmer at their edges than their centers — is fixed
+to theoretically predicted values from stellar atmosphere models (Claret & Bloemen 2011).
+
+---
+**Why not just least-squares fit?**
+
+A least-squares fit finds the single combination that minimizes residuals. It assumes
+symmetric Gaussian errors. Transit parameters are correlated: a larger planet on a
+more grazing orbit (higher b) can produce the same light curve as a smaller central-transit
+planet. MCMC makes no such assumptions — it discovers the full shape of the uncertainty.
+
+---
+**Monte Carlo: mapping the probability landscape**
+
+For each candidate parameter set (t₀, rp, b), we evaluate the **log-likelihood** —
+how probable is it that this model produced exactly the data we observed, given the
+known measurement noise:
+""")
+        st.latex(
+            r"\ln \mathcal{L} = -\frac{1}{2} \sum_i \frac{\left(d_i - m_i\right)^2}{\sigma_i^2}"
+        )
+        st.markdown(r"""
+$d_i$ is the measured flux, $m_i$ is the model flux, $\sigma_i$ is Kepler's
+photometric uncertainty for that cadence. Candidates with high $\mathcal{L}$ are
+kept; the rest are rejected. All kept samples together form the **posterior distribution**.
+
+---
+**Markov Chain: guided exploration**
+
+Pure random sampling wastes time in low-likelihood regions. A Markov Chain concentrates
+the sampling: each new candidate is proposed *near* the current position, weighted by
+the likelihood ratio. The chain gravitates toward where the model fits and explores
+that region thoroughly. We use `emcee`'s affine-invariant ensemble sampler —
+the walkers learn from each other's positions to stretch proposals in the directions
+the posterior actually occupies.
+
+---
+**How telescope noise becomes parameter uncertainty**
+
+$\sigma_i$ appears directly in the likelihood. A deep, clean transit produces a
+tight posterior — the data strongly constrain the fit. A shallow transit in noisy
+data produces a broad posterior. The MCMC reveals the uncertainty that was always
+encoded in the noise floor of the detector. The asymmetric error bars you see on
+planet radius, impact parameter, and orbital period are not formulas applied after
+the fact — they are the actual spread of solutions the data cannot rule out.
+""")
 
     # Run MCMC if not cached
     if st.session_state.all_mcmc is None:
@@ -53,9 +120,9 @@ def render():
                 try:
                     mcmc = run_mcmc(
                         lc, bls,
-                        n_walkers=32,
-                        n_steps=5000,
-                        n_burnin=500,
+                        n_walkers=conf.mcmc.n_walkers,
+                        n_steps=conf.mcmc.n_steps,
+                        n_burnin=conf.mcmc.n_burnin,
                         u1=ld.u1,
                         u2=ld.u2,
                         stellar_mass=stellar.mass,
@@ -186,14 +253,3 @@ def render():
 
         st.markdown("<hr>", unsafe_allow_html=True)
 
-    st.markdown("<div style='margin: 2rem 0;'></div>", unsafe_allow_html=True)
-
-    col1, col2 = st.columns([3, 1])
-    with col2:
-        if st.button("See results →", width='stretch', type="primary"):
-            st.session_state.step = 4
-            st.rerun()
-    with col1:
-        if st.button("← Back to detection"):
-            st.session_state.step = 2
-            st.rerun()
