@@ -111,7 +111,7 @@ was previously hidden beneath a stronger neighbor.
                 period_str = f" (P = {period:.3f} d)" if period else ""
                 status_text.markdown(
                     f'<p style="font-family:\'DM Mono\',monospace; font-size:0.8rem; color:#4ade80;">'
-                    f'✓ Found {label} planet{period_str} — checking for more…</p>',
+                    f'✓ Found {label} planet{"s" if n_found != 1 else ""}{period_str} — checking for more…</p>',
                     unsafe_allow_html=True,
                 )
             elif event == "duplicate":

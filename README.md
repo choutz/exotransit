@@ -26,7 +26,7 @@ This matters because even the biweight's down-weighting in Pass 1 is not the sam
 
 ### 2. Period search — Box Least Squares (BLS)
 
-Transit signals are periodic and somewhat box-shaped: the planet blocks a fixed fraction of starlight for a fixed duration every orbit. Box Least Squares, or BLS (Kovács, Zucker & Mazeh 2002), is the standard algorithm for finding this — it tests thousands of period/duration combinations and scores each by how well a box model fits the phase-folded data.
+Transit signals are periodic and box-shaped: the planet blocks a fixed fraction of starlight for a fixed duration every orbit. Box Least Squares, or BLS (Kovács, Zucker & Mazeh 2002), is the standard algorithm for finding this — it tests thousands of period/duration combinations and scores each by how well a box model fits the phase-folded data.
 
 **Period grid:** frequencies are spaced uniformly with step size df = min\_duration / baseline², chosen so a transit drifts by at most one duration when stepping between adjacent frequency grid points. This ensures uniform coverage of transit repetition rate rather than orbital period. The grid is capped at 200,000 points to stay within memory limits; periods are recovered as 1/frequency.
 
@@ -55,9 +55,7 @@ Detections are vetted against a set of flags modeled on NASA's Threshold Crossin
 
 ### 4. Multi-planet detection
 
-After finding the first planet, its transit windows are median-filled and BLS runs again on the residuals. This iterates up to a configurable maximum. If a candidate period matches one already found (within 5%), it is skipped but the search continues — the search terminates only when a reliability flag trips on a new candidate, indicating no more credible signals remain.
-
-> **Note:** Multi-planet detection is an active area of work. Balancing the reliability thresholds across diverse systems (different planet sizes, periods, stellar types) is tricky — a threshold that correctly rejects noise for a hot Jupiter around a quiet star may reject a real small planet around a noisier one. Diagnostic mask plots are generated at each iteration and are viewable via expandable sections in the web app, or written to disk by passing `debug_dir` to `find_all_planets`.
+After finding the first planet, its transit windows are median-filled and BLS runs again on the residuals. This iterates up to a configurable maximum. If a candidate period matches one already found (within 5%), it is skipped but the search continues — the search terminates only when a reliability flag trips on a new candidate, indicating no more credible signals remain. Balancing the reliability thresholds across diverse systems is tricky — a threshold that correctly rejects noise for a hot Jupiter around a quiet star may reject a real small planet around a noisier one. Diagnostic mask plots are generated at each iteration and are viewable via expandable sections in the web app, or written to disk by passing `debug_dir` to `find_all_planets`.
 
 ### 5. Transit model fitting — MCMC
 
@@ -133,7 +131,7 @@ plotly            — interactive visualizations
 streamlit         — web app
 requests          — NASA Exoplanet Archive TAP queries
 tqdm              — progress bars in CLI pipeline runs
-wotan             — detrending (lightkurve dependency)
+astroquery        — NASA Exoplanet Archive queries (used in test scripts for truth data comparison)
 ```
 
 ---
@@ -170,7 +168,7 @@ The app is designed to run within Streamlit Community Cloud's constraints (1 GB 
 
 ## Known limitations and open problems
 
-The detection pipeline works well on clean, well-separated signals, but generalizing to arbitrary targets surfaces a range of astrophysical and algorithmic challenges:
+The pipeline and app work well across most Kepler targets, but edge cases continue to surface as more systems are tested — it's a work in progress toward making the detection and characterization more robust across the full diversity of the Kepler catalog. The known challenges are:
 
 **Transit masking in multi-planet systems**
 After masking a detected planet's transits, BLS occasionally re-detects the same period on the next iteration, indicating the mask didn't fully suppress the signal. The mask window is currently 3× the BLS-estimated duration, but BLS duration estimates can underestimate true duration, especially for grazing or long-duration transits.
@@ -201,8 +199,8 @@ The above list is not exhaustive. Real planet confirmation involves independent 
 
 ## References
 
-- Kovács, Zucker & Mazeh (2002) — Box Least Squares algorithm
-- Jenkins et al. (2010) — Kepler TCE pipeline and SDE threshold
-- Mandel & Agol (2002) — Analytic transit light curve models (batman)
-- Claret (2011) — Kepler quadratic limb darkening tables
-- Foreman-Mackey et al. (2013) — emcee ensemble MCMC sampler
+- [Kovács, Zucker & Mazeh (2002) — Box Least Squares algorithm](https://arxiv.org/abs/astro-ph/0206099)
+- [Jenkins et al. (2010) — Kepler TCE pipeline and SDE threshold](https://arxiv.org/abs/1001.0258)
+- [Mandel & Agol (2002) — Analytic transit light curve models (batman)](https://arxiv.org/abs/astro-ph/0210099)
+- [Claret (2011) — Kepler quadratic limb darkening tables](https://www.aanda.org/articles/aa/full_html/2011/05/aa16451-11/aa16451-11.html)
+- [Foreman-Mackey et al. (2013) — emcee ensemble MCMC sampler](https://arxiv.org/abs/1202.3665)
