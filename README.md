@@ -1,5 +1,4 @@
 # exotransit
-#### Exoplanet Xtra Ornamental Transit Recognition and ANalysis Suite for Investigating Targets
 
 A Python pipeline for detecting and characterizing exoplanet transits from Kepler photometry. Given a star name, it downloads the light curve, searches for periodic transit signals, fits a physical transit model using MCMC, and derives planet properties with full uncertainty propagation.
 
