@@ -12,7 +12,7 @@ Validated on stars with varying numbers of planets, including Kepler-97, Kepler-
 
 ### 1. Light curve ingestion
 
-Raw photometry is downloaded from NASA MAST via [lightkurve](https://docs.lightkurve.org/). For Kepler targets, multiple quarters (~90 days each) are downloaded and stitched together. Each quarter is normalized independently before stitching — this removes inter-quarter flux jumps caused by the spacecraft rotating and landing the star on a different detector pixel.
+Raw photometry is downloaded from NASA MAST via [lightkurve](https://lightkurve.github.io/lightkurve/). For Kepler targets, multiple quarters (~90 days each) are downloaded and stitched together. Each quarter is normalized independently before stitching — this removes inter-quarter flux jumps caused by the spacecraft rotating and landing the star on a different detector pixel.
 
 Per-quarter preprocessing: remove NaNs → sigma-clip outliers (5σ) → normalize to unit flux.
 
