@@ -52,14 +52,20 @@ timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 LOG_FILE = OUTPUT_DIR / f"big_test_{timestamp}.log"
 
 fmt = "%(asctime)s  %(levelname)-8s  %(message)s"
-logging.basicConfig(
-    level=logging.INFO,
-    format=fmt,
-    handlers=[
-        logging.StreamHandler(sys.stdout),
-        logging.FileHandler(LOG_FILE, encoding="utf-8"),
-    ],
-)
+formatter = logging.Formatter(fmt)
+
+root = logging.getLogger()
+root.setLevel(logging.INFO)
+root.handlers.clear()
+
+_sh = logging.StreamHandler(sys.stdout)
+_sh.setFormatter(formatter)
+root.addHandler(_sh)
+
+_fh = logging.FileHandler(LOG_FILE, encoding="utf-8")
+_fh.setFormatter(formatter)
+root.addHandler(_fh)
+
 logger = logging.getLogger("big_test")
 
 # Capture BLS rejection warnings from pipeline loggers
