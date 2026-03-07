@@ -1,6 +1,6 @@
 # exotransit
 
-A Python pipeline for detecting and characterizing exoplanet transits from Kepler photometry. Given a star name, it downloads the light curve, searches for periodic transit signals, fits a physical model using MCMC, and derives planet properties with full uncertainty propagation.
+A Python pipeline for detecting and characterizing exoplanet transits from Kepler photometry. Given a star name, it downloads the light curve, searches for periodic transit signals, fits a physical transit model using MCMC, and derives planet properties with full uncertainty propagation.
 
 **Live app: [exotransit.streamlit.app](https://exotransit.streamlit.app/)**
 
@@ -12,9 +12,9 @@ Validated on stars with varying numbers of planets, including Kepler-97, Kepler-
 
 ### 1. Light curve ingestion
 
-Raw photometry is downloaded from NASA MAST via [lightkurve](https://docs.lightkurve.org/). For Kepler targets, multiple quarters (~90 days each) are downloaded and stitched together. Each quarter is detrended and normalized independently before stitching — this removes inter-quarter flux jumps caused by the spacecraft rotating and landing the star on a different detector pixel.
+Raw photometry is downloaded from NASA MAST via [lightkurve](https://docs.lightkurve.org/). For Kepler targets, multiple quarters (~90 days each) are downloaded and stitched together. Each quarter is normalized independently before stitching — this removes inter-quarter flux jumps caused by the spacecraft rotating and landing the star on a different detector pixel.
 
-Per-quarter preprocessing: remove NaNs → sigma-clip outliers (5σ) → normalize to unit flux. Normalization removes inter-quarter flux jumps without touching the transit signal.
+Per-quarter preprocessing: remove NaNs → sigma-clip outliers (5σ) → normalize to unit flux.
 
 After stitching, detrending runs in two passes:
 
@@ -22,15 +22,15 @@ After stitching, detrending runs in two passes:
 
 **Pass 2 (refined):** After BLS has identified all planet periods, the biweight runs again — but this time every point inside a transit window (3× the BLS-estimated duration, centered on each transit time) is explicitly set to NaN before the filter sees anything. The sliding window then has no transit flux to work with at those times: the trend at every point near a transit is estimated entirely from out-of-transit stellar continuum on either side. When the flux is divided by this trend, the full transit depth is recovered without any suppression.
 
-This matters because even the biweight's down-weighting in Pass 1 is not the same as full exclusion. A transit dip receives low but non-zero weight in the biweight kernel, which slightly pulls the local trend estimate downward and partially fills in the dip. For small planets — where a few percent of depth suppression is a meaningful fraction of the signal — Pass 1 alone underestimates `rp`. Pass 2 eliminates this bias entirely: the trend the MCMC light curve is divided by was never influenced by the transit signal at all.
-
-The result is that MCMC fits a light curve whose transit depths reflect the actual photon counts — as close to the raw signal as possible while still removing the slow stellar and instrumental trends that would otherwise swamp it. MCMC re-folds this refined LC directly rather than using any folded data stored by BLS, so the depth improvement propagates through to the final planet radius.
+This matters because even the biweight's down-weighting in Pass 1 is not the same as full exclusion. A transit dip receives low but non-zero weight in the biweight kernel, which slightly pulls the local trend estimate downward and partially fills in the dip. For small planets — where a few percent of depth suppression is a meaningful fraction of the signal — Pass 1 alone underestimates the true transit depth. The Pass 2 light curve is what transit model fitting receives.
 
 ### 2. Period search — Box Least Squares (BLS)
 
-Transit signals are periodic and box-shaped: the planet blocks a fixed fraction of starlight for a fixed duration every orbit. BLS (Kovács, Zucker & Mazeh 2002) is the standard algorithm for finding this — it tests thousands of period/duration combinations and scores each by how well a box model fits the phase-folded data.
+Transit signals are periodic and somewhat box-shaped: the planet blocks a fixed fraction of starlight for a fixed duration every orbit. Box Least Squares, or BLS (Kovács, Zucker & Mazeh 2002), is the standard algorithm for finding this — it tests thousands of period/duration combinations and scores each by how well a box model fits the phase-folded data.
 
-The period grid is spaced linearly in frequency rather than period, which gives uniform sampling of transit repetition rate. A sharp peak in the power spectrum at some period P means a repeating box-shaped dip every P days.
+**Period grid:** frequencies are spaced uniformly with step size df = min\_duration / baseline², chosen so a transit drifts by at most one duration when stepping between adjacent frequency grid points. This ensures uniform coverage of transit repetition rate rather than orbital period. The grid is capped at 200,000 points to stay within memory limits; periods are recovered as 1/frequency.
+
+**Duration grid:** 12 values spaced geometrically from ~30 minutes to a maximum bounded by the minimum search period. Geometric spacing gives finer resolution at short durations where relative errors are larger.
 
 Two quality metrics are computed:
 - **SDE** (Signal Detection Efficiency): how many standard deviations above the noise floor the peak stands. SDE > 7.1 is the Kepler pipeline's minimum threshold (Jenkins et al. 2010).
@@ -48,30 +48,30 @@ Detections are vetted against a set of flags modeled on NASA's Threshold Crossin
 | TCE-05/06 | ≥ 3 in-transit points, ≥ 70% of expected cadences covered |
 | TCE-07 | Depth > 3σ above noise floor |
 | TCE-08 | ≥ 3 complete transit windows in the baseline |
-| TCE-09 | No strong alias periods (P/2, 2P, etc.) |
-| TCE-10 | Odd/even transit depth symmetry (alternating depths → eclipsing binary) |
+| TCE-09 | No strong alias periods (P/2, P/3, 2P, 3P, etc.) |
 | TCE-13 | Depth < 3% (deeper signals are almost always grazing eclipsing binaries) |
-| TCE-14 | Not below Kepler's 30 ppm reliable detection floor |
+| TCE-14 | Not below Kepler's 30 ppm detection floor with marginal SNR |
+| TCE-15 | Depth ≥ 60 ppm for long-cadence (30-min) data |
 
 ### 4. Multi-planet detection
 
-After finding the first planet, its transits are masked out and BLS is run again on the residuals. This iterates up to a configurable maximum. If a new detection duplicates a period already found (within 5%), the masking failed and the search stops.
+After finding the first planet, its transit windows are median-filled and BLS runs again on the residuals. This iterates up to a configurable maximum. If a candidate period matches one already found (within 5%), it is skipped but the search continues — the search terminates only when a reliability flag trips on a new candidate, indicating no more credible signals remain.
 
-> **Note:** Multi-planet detection is an active area of work. Balancing the reliability thresholds across diverse systems (different planet sizes, periods, stellar types) is tricky — a threshold that correctly rejects noise for a hot Jupiter around a quiet star may reject a real small planet around a noisier one. Diagnostic mask plots are generated at each iteration (pass `debug_dir` to `find_all_planets`) to make the masking behavior inspectable.
+> **Note:** Multi-planet detection is an active area of work. Balancing the reliability thresholds across diverse systems (different planet sizes, periods, stellar types) is tricky — a threshold that correctly rejects noise for a hot Jupiter around a quiet star may reject a real small planet around a noisier one. Diagnostic mask plots are generated at each iteration and are viewable via expandable sections in the web app, or written to disk by passing `debug_dir` to `find_all_planets`.
 
 ### 5. Transit model fitting — MCMC
 
-Once a candidate period is identified, a physical transit model is fit using MCMC ([emcee](https://emcee.readthedocs.io/) + [batman](https://lkreidberg.github.io/batman/)). The free parameters are:
+Once all candidate periods are identified, a physical transit model is fit to each one. MCMC — Markov Chain Monte Carlo — is a statistical sampling method that maps out the full probability distribution over parameter values consistent with the data, rather than finding a single best-fit point. This gives asymmetric uncertainties and correctly captures parameter correlations (for example, between planet radius and impact parameter, which are degenerate for grazing transits).
+
+The sampler is [emcee](https://emcee.readthedocs.io/) (Foreman-Mackey et al. 2013), an ensemble sampler that runs many parallel walkers through parameter space and collects samples from the posterior. The transit model is [batman](https://lkreidberg.github.io/batman/) (Mandel & Agol 2002). The free parameters are:
 
 - `t0` — transit center time (days)
 - `rp` — planet-to-star radius ratio (Rp/R★)
 - `b` — impact parameter (0 = central transit, 1 = grazing)
 
-Limb darkening is fixed to quadratic coefficients interpolated from Claret (2011) Kepler tables using the star's Teff, log g, and metallicity from the NASA Exoplanet Archive. Fitting limb darkening freely requires higher photometric precision than most single-system fits can provide, and Claret tables are well-validated for Kepler targets.
+Limb darkening is fixed to quadratic coefficients interpolated from Claret (2011) Kepler tables using the star's Teff, log g, and metallicity from the NASA Exoplanet Archive. The semi-major axis is derived from Kepler's 3rd law using the archive stellar mass rather than being left as a free parameter. This couples the transit duration to the orbital physics, which is the physically correct constraint.
 
-The semi-major axis is derived from Kepler's 3rd law using the archive stellar mass rather than being left as a free parameter. This couples the transit duration to the orbital physics, which is the physically correct constraint.
-
-For long-cadence Kepler data (30-minute integrations), the transit model is supersampled and integrated over each exposure window. Without this correction, the box-shaped ingress/egress in the model doesn't match the smoothed shape that 30-minute averaging produces, and `rp` is systematically underestimated.
+**Exposure time smearing correction:** Kepler long-cadence data records the *average* brightness over a 30-minute window. During ingress and egress the stellar disk is only partially covered, so brightness is changing rapidly — but the detector averages over the whole 30 minutes regardless. A transit model evaluated at a single instant per cadence would predict a sharp ingress/egress profile, while the actual data shows it smoothed. The correction supersamples each 30-minute exposure into many sub-cadence time points, evaluates the model at each, then averages before comparing to the data — matching what the detector physically measures. Without this, the optimizer shrinks `rp` to compensate for the mismatch in ingress sharpness, producing a systematically underestimated planet radius.
 
 ### 6. Physical parameter derivation
 
@@ -79,10 +79,10 @@ MCMC posteriors are combined with stellar parameters from the NASA Exoplanet Arc
 
 - **Planet radius** (Earth radii, Jupiter radii, km)
 - **Semi-major axis** (AU, from Kepler's 3rd law)
-- **Equilibrium temperature** (K, assuming Bond albedo = 0.3)
+- **Equilibrium temperature** (K, assuming Bond albedo = 0.3 — roughly Earth- or Jupiter-like; the exact choice shifts temperature by ≲20% and is not particularly meaningful without a real atmosphere model)
 - **Insolation** (relative to Earth)
 
-Uncertainty propagation is done by sampling: stellar radius, mass, and temperature uncertainties are drawn from Gaussians and combined with the MCMC posterior at each sample, then percentiles are read off the resulting distributions. This correctly handles non-Gaussian posteriors without Gaussian error propagation assumptions.
+Uncertainty propagation is done by sampling: stellar radius, mass, and temperature are each drawn from Gaussians centered on the archive values with their reported uncertainties, then combined with the MCMC posterior samples point-by-point. Derived quantities are computed for each combination and percentiles of the resulting distributions give the reported medians and 1σ bounds. This correctly handles non-Gaussian posteriors and parameter correlations without Gaussian error propagation assumptions.
 
 ---
 
@@ -90,14 +90,16 @@ Uncertainty propagation is done by sampling: stellar radius, mass, and temperatu
 
 ```
 pipeline/
-  light_curves.py      — download, stitch, biweight-detrend (MAST via lightkurve)
+  light_curves.py      — download, stitch, biweight-detrend (MAST via lightkurve);
+                         redetrend_with_mask() runs Pass 2 after BLS
   observations.py      — list available quarters/sectors without downloading
   helpers.py           — flux_err extraction
 
 detection/
   bls.py               — BLS period search, BLSResult dataclass
   result_evaluation.py — TCE-style reliability vetting
-  multi_planet.py      — iterative multi-planet search with transit masking
+  multi_planet.py      — iterative multi-planet search, transit masking,
+                         Pass 2 redetrend; returns (planets, mask_data, refined_lc)
 
 mcmc/
   fit_mcmc.py          — emcee sampler, MCMCResult dataclass
@@ -113,7 +115,7 @@ viz/
                          MCMC spaghetti, corner plot, orrery, planet comparison)
 
 app/
-  steps/               — Streamlit UI
+  steps/               — Streamlit UI (step0–step4)
 ```
 
 ---
@@ -121,32 +123,23 @@ app/
 ## Dependencies
 
 ```
-lightkurve        — light curve download and preprocessing
+lightkurve        — light curve download, stitching, and preprocessing
 emcee             — MCMC ensemble sampler
-batman-package    — transit light curve models
-astropy           — time/unit handling, BLS
-numpy, scipy      — numerical core
+batman-package    — Mandel-Agol analytic transit light curve models
+astropy           — time/unit handling, BLS implementation
+numpy             — numerical core
+pandas            — data handling (stellar parameter queries, LD tables)
 plotly            — interactive visualizations
 streamlit         — web app
-requests          — NASA Exoplanet Archive queries
-tqdm, matplotlib  — progress display, diagnostic plots
+requests          — NASA Exoplanet Archive TAP queries
+tqdm              — progress bars in CLI pipeline runs
+wotan             — detrending (lightkurve dependency)
 ```
 
 ---
 
 ## Running
 
-**Multi-planet search:**
-```bash
-python tests/test_fetch_and_search.py
-```
-
-**Full pipeline with MCMC:**
-```bash
-python tests/test_mcmc.py
-```
-
-**Streamlit app:**
 ```bash
 streamlit run app.py
 ```
@@ -157,13 +150,13 @@ Configuration profiles (`MEDIUM` for Streamlit Cloud, `FULL` for local) are in `
 
 ## Streamlit app
 
-The pipeline is wrapped in a step-by-step Streamlit app intended for interactive exploration of any Kepler or TESS target. The skeleton is functional but still under active development.
+The pipeline is wrapped in a step-by-step Streamlit app for interactive exploration of Kepler targets.
 
 **Step 1 — Raw Data**
-Enter a star name (e.g. `Kepler-11`, `TOI-700`). The app downloads the stitched light curve from MAST and queries the NASA Exoplanet Archive for stellar parameters (radius, mass, Teff, log g, metallicity). It shows the raw and detrended flux side by side, with quarter boundaries and >3σ transit candidates highlighted.
+Enter a Kepler star name (e.g. `Kepler-11`). The app downloads the stitched light curve from MAST and queries the NASA Exoplanet Archive for stellar parameters (radius, mass, Teff, log g, metallicity). It shows the raw and detrended flux side by side, with quarter boundaries and >3σ transit candidates highlighted.
 
 **Step 2 — Transit Detection**
-BLS runs iteratively with a live progress bar. For each detection it shows the BLS power spectrum (log period axis, aliases marked) and the phase-folded light curve with binned points. Detections that fail the reliability vetting are filtered out before display.
+BLS runs iteratively. A status line updates after each planet is found — e.g. *"Found one planet (P = 4.886 d) — checking for more…"* — so it's clear the app is alive during long searches. After all planets are found, the light curve is re-detrended with transit windows explicitly excluded (Pass 2), ensuring transit model fitting in the next step works from uncontaminated stellar continuum. For each detection the app shows the BLS power spectrum (log period axis, aliases marked) and the phase-folded light curve, plus an expandable masking diagnostic showing which points were median-filled before the next BLS pass.
 
 **Step 3 — MCMC Fitting**
 For each detected planet, emcee runs a fit with limb darkening fixed to the Claret (2011) values retrieved in Step 1. Shows the phase fold with model overlay, MCMC spaghetti plot (posterior draws), corner plot in physical units, and per-parameter posterior histograms.
@@ -171,16 +164,16 @@ For each detected planet, emcee runs a fit with limb darkening fixed to the Clar
 **Step 4 — Results**
 Physical parameters (radius, semi-major axis, equilibrium temperature, insolation) with 1σ uncertainties. An orrery shows the orbital architecture to scale, and a bubble chart plots the planets against Solar System benchmarks with a habitable zone overlay.
 
-The app currently only supports Kepler targets. The app is designed to run within Streamlit Community Cloud's constraints (1 GB RAM, 1 vCPU), which drives the `MEDIUM` config profile — a coarser period grid and fewer MCMC steps than the local `FULL` profile.
+The app is designed to run within Streamlit Community Cloud's constraints (1 GB RAM, 1 vCPU), which drives the `MEDIUM` config profile — a coarser period grid and fewer MCMC steps than the local `FULL` profile.
 
 ---
 
 ## Known limitations and open problems
 
-This project is a work in progress. The detection pipeline works well on clean, well-separated signals (hot Jupiters, the Kepler-11 system), but generalizing to arbitrary targets surfaces a range of astrophysical and algorithmic challenges:
+The detection pipeline works well on clean, well-separated signals, but generalizing to arbitrary targets surfaces a range of astrophysical and algorithmic challenges:
 
 **Transit masking in multi-planet systems**
-After masking a detected planet's transits, BLS occasionally re-detects the same period on the next iteration, indicating the mask didn't fully suppress the signal. The mask window is currently 3× the BLS-estimated duration, but BLS duration estimates are coarse (5-point grid) and can underestimate true duration, especially for grazing or long-duration transits.
+After masking a detected planet's transits, BLS occasionally re-detects the same period on the next iteration, indicating the mask didn't fully suppress the signal. The mask window is currently 3× the BLS-estimated duration, but BLS duration estimates can underestimate true duration, especially for grazing or long-duration transits.
 
 **Reliability threshold generalizability**
 The TCE-style vetting thresholds were tuned against the Kepler pipeline's assumptions (quiet FGK stars, long-cadence photometry, ~4-year baselines). They don't generalize cleanly to:
@@ -189,29 +182,20 @@ The TCE-style vetting thresholds were tuned against the Kepler pipeline's assump
 - Active stars with coronal variability that inflates the noise floor
 
 **Transit timing variations (TTVs)**
-Planets in or near mean-motion resonance (e.g. Kepler-36, some Kepler-11 pairs) have transit times that shift by minutes to hours from orbit to orbit due to gravitational interactions. BLS assumes perfectly periodic transits and smears out TTV signals when phase-folding, reducing detection SNR. Handling TTVs properly requires a separate dynamical modeling step not currently implemented.
+Planets in or near mean-motion resonance have transit times that shift by minutes to hours from orbit to orbit due to gravitational interactions. BLS assumes perfectly periodic transits and smears out TTV signals when phase-folding, reducing detection SNR. Handling TTVs properly requires a separate dynamical modeling step not currently implemented.
 
 **Stellar activity**
-Starspots, flares, and coronal mass ejections all produce flux variations that can alias into the BLS period grid or corrupt the transit depth estimate. The biweight filter removes slow trends but is not specifically designed to handle short-duration flares or rotationally-modulated spot patterns.
+Starspots, flares, and coronal mass ejections all produce flux variations that can alias into the BLS period grid or corrupt the transit depth estimate. The biweight filter removes slow trends but is not designed to handle short-duration flares or rotationally-modulated spot patterns.
 
 **Eclipsing binary contamination**
-Eclipsing binaries are a major source of false positives in transit surveys. The pipeline catches the most blatant cases via TCE-04 (duty cycle) and TCE-13 (depth > 3%), but anything more subtle — odd/even depth alternation, secondary eclipses at phase 0.5, background EBs blended inside the photometric aperture — requires centroid motion analysis, radial velocity follow-up, or multi-wavelength photometry to rule out. Attempting to do this from Kepler photometry alone produces enough false positives and false negatives that it's not worth the complexity. So: if the target is actually an eclipsing binary that passes the coarse cuts, the pipeline will fit it and give you numbers. The numbers will be wrong.
+Eclipsing binaries are a major source of false positives in transit surveys. The pipeline catches the most blatant cases via TCE-04 (duty cycle) and TCE-13 (depth > 3%), but anything more subtle — odd/even depth alternation, secondary eclipses at phase 0.5, background EBs blended inside the photometric aperture — requires centroid motion analysis, radial velocity follow-up, or multi-wavelength photometry to rule out. If the target is actually an eclipsing binary that passes the coarse cuts, the pipeline will fit it and give you numbers. The numbers will be wrong.
 
-**Detrending uncertainty is not propagated into MCMC posteriors**
-
-The biweight filter produces a detrended light curve that MCMC then treats as fixed truth. Any uncertainty in *where the stellar trend was* — whether the filter slightly suppressed a transit, or whether a stellar oscillation was misidentified as continuum — does not appear in the posterior. The reported error bars therefore represent photon noise only, not the full uncertainty budget.
-
-The correct approach for rigorous uncertainty quantification is **simultaneous GP + transit modeling**: instead of pre-filtering, model the stellar variability as a Gaussian Process kernel and the planet as a Mandel-Agol transit model, then run MCMC over both at once:
-
-```
-Expected flux = transit_model(t₀, rp, b) + GP(θ_stellar)
-```
-
-This correctly folds the uncertainty from stellar noise into the planet parameter posteriors. It is not implemented here because: (1) GP covariance matrix operations scale as O(N³) in the number of data points — far too slow for real-time use on Streamlit and impractical even locally for multi-quarter Kepler baselines; and (2) inferring GP hyperparameters for an unknown star requires careful prior selection and is not straightforward to automate across arbitrary targets. The biweight pre-filter is a widely-used and reasonable approximation for a transit characterization pipeline at this level.
+**Uncertainty underestimation**
+The detrended light curve is treated as fixed truth by the transit model fitting. Any uncertainty in where the stellar trend was — whether the filter slightly suppressed a transit or misidentified a stellar oscillation as continuum — does not propagate into the parameter posteriors. The reported error bars represent photon noise only. Fully propagating detrending uncertainty requires simultaneous GP + transit modeling, which is computationally prohibitive for real-time use.
 
 **Why real planet discoveries get their own papers**
 
-The above list is not exhaustive — it's just the issues that have come up so far while testing on known systems. Real planet confirmation papers exist because each of these problems requires its own specialized analysis. A Kepler discovery paper typically involves: independent vetting of every TCE by multiple reviewers, centroid analysis to rule out background EBs, stellar characterization from spectroscopy (not archive values), dynamical modeling if multiple planets are present, statistical false positive probability calculations, and often ground-based follow-up photometry and radial velocity measurements. A generic pipeline that goes "download light curve → run BLS → done" will find the same candidates the real pipeline found, but it has no way to actually confirm them. This project is the former: a tool for exploring what's in the data and understanding the physics, not a replacement for the full vetting process.
+The above list is not exhaustive. Real planet confirmation involves independent TCE vetting by multiple reviewers, centroid motion analysis to rule out background EBs, spectroscopic stellar characterization, dynamical modeling for multi-planet systems, and statistical false positive probability calculations. This pipeline runs the full detection and characterization sequence — period search, reliability vetting, transit model fitting, and physical parameter derivation — and produces results consistent with known systems. What it does not do is confirm planets: that requires the follow-up observations and analysis that real discovery papers are built around.
 
 ---
 
