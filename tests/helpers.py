@@ -25,13 +25,13 @@ def get_light_curve(target: str, mission: str, max_quarters: int, verbose: bool 
         with open(cache_file, "rb") as f:
             return pickle.load(f)
 
-    if verbose:
-        obs = list_available_observations(target, mission=mission)
-        print(f"Found {len(obs)} observations:")
-        for o in obs:
-            print(f"  {o}")
+    # if verbose:
+    #     obs = list_available_observations(target, mission=mission)
+        # print(f"Found {len(obs)} observations:")
+        # for o in obs:
+        #     print(f"  {o}")
 
-    print("Fetching light curve from MAST...")
+    # print("Fetching light curve from MAST...")
     lc = fetch_light_curve(target, mission=mission, max_quarters=max_quarters)
     with open(cache_file, "wb") as f:
         pickle.dump(lc, f)
