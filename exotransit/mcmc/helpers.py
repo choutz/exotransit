@@ -53,12 +53,7 @@ def _transit_model(
 
 def _log_prior(params: np.ndarray, snr: float = 0.0) -> float:
     """
-    Log prior. Hard bounds on all parameters plus a Gaussian soft prior on b.
-
-    The soft prior penalizes grazing transits (high b) for strong detections.
-    For high-SNR signals a grazing geometry is implausible — the transit shape
-    would be V-shaped, not box-shaped. Width scales with SNR: tight for strong
-    signals, loose for weak ones where grazing is genuinely uncertain.
+    Log prior.
     """
     t0, rp, b = params
 
@@ -68,13 +63,7 @@ def _log_prior(params: np.ndarray, snr: float = 0.0) -> float:
         return -np.inf
     if not (0.0 <= b < 1.0):
         return -np.inf
-
-    # Soft Gaussian prior on b centered at 0 (central transit).
-    # b_sigma widens for low-SNR detections where grazing is uncertain.
-    b_sigma = max(0.3, 1.0 / (1.0 + snr / 20.0))
-    lp = -0.5 * (b / b_sigma) ** 2
-
-    return lp
+    return 0.0
 
 
 def _log_likelihood(

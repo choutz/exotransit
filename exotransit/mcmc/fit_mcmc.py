@@ -178,7 +178,8 @@ def run_mcmc(
 
     # Clip to transit region — scale window to 3x BLS duration
     # so ingress/egress are fully included but out-of-transit noise is limited
-    window = max(bls.best_duration * 3.0, 0.3)
+    # window = max(bls.best_duration * 3.0, 0.3)
+    window = 0.5
     transit_mask = np.abs(bls.folded_time) < window
     time = bls.folded_time[transit_mask]
     flux = bls.folded_flux[transit_mask]
@@ -199,6 +200,7 @@ def run_mcmc(
         _log_probability,
         args=(time, flux, flux_err, period, u1, u2,
               stellar_mass, stellar_radius, exp_time_days, bls.snr),
+        moves=emcee.moves.StretchMove(a=5.0)
     )
 
     logger.info(f"Burn-in: {n_burnin} steps...")

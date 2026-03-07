@@ -216,8 +216,19 @@ def run_bls(
     else:
         in_flux = folded_flux[in_transit]
         in_err = folded_flux_err[in_transit]
-        transit_depth = float(1.0 - np.mean(in_flux))
-        depth_uncertainty = float(np.sqrt(np.sum(in_err ** 2)) / in_transit.sum())
+
+        # Use bottom 30% of in-transit points to estimate depth.
+        # np.mean(in_flux) dilutes depth by including ingress/egress —
+        # for a 30-min cadence with ~10 in-transit points this causes
+        # systematic 2-5x underestimation of true transit depth.
+        n_bottom = max(1, int(len(in_flux) * 0.3))
+        bottom_idx = np.argsort(in_flux)[:n_bottom]
+        bottom_flux = in_flux[bottom_idx]
+        bottom_err = in_err[bottom_idx]
+
+        transit_depth = float(1.0 - np.mean(bottom_flux))
+        depth_uncertainty = float(np.sqrt(np.sum(bottom_err ** 2)) / n_bottom)
+
 
     power_std = np.std(power)
 

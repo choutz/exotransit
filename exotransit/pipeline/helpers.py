@@ -5,9 +5,9 @@ logger = logging.getLogger(__name__)
 
 
 def _compute_window_points(time_array: np.ndarray) -> int:
-    """Odd integer number of cadences spanning ~0.5 days. Savgol requires odd."""
+    """Odd integer number of cadences spanning ~3 days. Savgol requires odd."""
     cadence_days = np.nanmedian(np.diff(time_array))
-    window = int(0.5 / cadence_days)
+    window = int(3.0 / cadence_days)
     if window % 2 == 0:
         window += 1
     return max(window, 3)

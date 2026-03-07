@@ -6,7 +6,7 @@ Shows pipeline plot and explains what we're looking at.
 """
 
 import streamlit as st
-from exotransit.pipeline.light_curves import fetch_stitched_light_curve
+from exotransit.pipeline.light_curves import fetch_light_curve
 from exotransit.physics.stars import query_stellar_params
 from exotransit.physics.limb_darkening import get_limb_darkening
 from exotransit.viz.plots import plot_light_curve_pipeline
@@ -30,7 +30,7 @@ def render():
     if st.session_state.lc is None:
         with st.spinner("Downloading light curve from NASA MAST…"):
             try:
-                lc = fetch_stitched_light_curve(target, mission="Kepler", max_quarters=conf.max_quarters)
+                lc = fetch_light_curve(target, mission="Kepler", max_quarters=conf.max_quarters)
                 st.session_state.lc = lc
             except Exception as e:
                 st.session_state.error = (

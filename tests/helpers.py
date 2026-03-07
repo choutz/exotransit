@@ -5,7 +5,7 @@ Shared test utilities — not part of the exotransit package.
 
 import pickle
 from pathlib import Path
-from exotransit.pipeline.light_curves import fetch_stitched_light_curve
+from exotransit.pipeline.light_curves import fetch_light_curve
 from exotransit.pipeline.observations import list_available_observations
 
 CACHE_DIR = Path(__file__).parent / ".lc_cache"
@@ -32,7 +32,7 @@ def get_light_curve(target: str, mission: str, max_quarters: int, verbose: bool 
             print(f"  {o}")
 
     print("Fetching light curve from MAST...")
-    lc = fetch_stitched_light_curve(target, mission=mission, max_quarters=max_quarters)
+    lc = fetch_light_curve(target, mission=mission, max_quarters=max_quarters)
     with open(cache_file, "wb") as f:
         pickle.dump(lc, f)
     return lc
