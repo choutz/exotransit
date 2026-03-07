@@ -4,7 +4,7 @@ exotransit/app/steps/step0_search.py
 import streamlit as st
 
 EXAMPLE_TARGETS = [
-    ("Kepler-97",  "Single planet system with a gas giant planet orbiting a G-type star"),
+    ("Kepler-5",  "Single planet system and one of the first five planets discovered by the Kepler spacecraft"),
     ("Kepler-183", "A two planet system discovered in 2014 in the constellation Cygnus"),
     ("Kepler-203", "A very similar star to our Sun with three tightly packed planets"),
     ("Kepler-215", "A complex four planet system that stress-tests multi-planet masking and detection"),
