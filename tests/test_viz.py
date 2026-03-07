@@ -77,9 +77,13 @@ if __name__ == "__main__":
 
     print("BLS (multi-planet)...")
     all_bls = load_cache(f"{TARGET}_bls")
+    refined_lc = load_cache(f"{TARGET}_refined_lc")
     if all_bls is None:
-        all_bls = find_all_planets(lc, max_planets=6, min_period=2.0, max_period=120.0)
+        all_bls, _, refined_lc = find_all_planets(lc, max_planets=6, min_period=2.0, max_period=120.0)
         save_cache(f"{TARGET}_bls", all_bls)
+        save_cache(f"{TARGET}_refined_lc", refined_lc)
+    if refined_lc is None:
+        refined_lc = lc
     print(f"  Found {len(all_bls)} planet(s):")
     for i, b in enumerate(all_bls):
         print(f"    P{i+1}: {b.best_period:.4f}d, depth={b.transit_depth:.6f}, "
@@ -92,7 +96,7 @@ if __name__ == "__main__":
         for i, bls in enumerate(all_bls):
             print(f"  Planet {i+1} (P={bls.best_period:.4f}d)...")
             mcmc = run_mcmc(
-                lc, bls,
+                refined_lc, bls,
                 n_walkers=32, n_steps=5000, n_burnin=500,
                 u1=ld.u1, u2=ld.u2,
                 stellar_mass=stellar.mass,

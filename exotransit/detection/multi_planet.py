@@ -4,7 +4,7 @@ from pathlib import Path
 from tqdm import tqdm
 
 from exotransit.detection.bls import BLSResult, run_bls
-from exotransit.pipeline.light_curves import LightCurveData
+from exotransit.pipeline.light_curves import LightCurveData, redetrend_with_mask
 import logging
 
 logger = logging.getLogger(__name__)
@@ -17,10 +17,25 @@ def find_all_planets(
     max_period: float = 30.0,
     max_period_grid_points: int = 100_000,
     debug_dir: str | None = None,
-) -> list[BLSResult]:
+    progress_callback=None,
+) -> tuple[list[BLSResult], list[dict], LightCurveData]:
+    """
+    Iterative multi-planet BLS search with transit masking and Pass-2 redetrending.
+
+    Returns
+    -------
+    planets : list[BLSResult]
+        Unique, reliable detections in order of discovery.
+    mask_data : list[dict]
+        Per-planet diagnostic data for mask plots: {"time", "flux", "mask"}.
+    refined_lc : LightCurveData
+        Pass-2 redetrended light curve (transit windows masked from the
+        biweight filter). Feed this to run_mcmc, not the original lc.
+    """
     # Use a copy so we don't mutate the original input
     lc_lk = lk.LightCurve(time=lc.time, flux=lc.flux, flux_err=lc.flux_err)
     unique_results = []
+    mask_data = []
 
     if debug_dir is not None:
         Path(debug_dir).mkdir(parents=True, exist_ok=True)
@@ -29,7 +44,6 @@ def find_all_planets(
         for i in range(max_planets):
             pbar.set_description(f"Searching for planet {i + 1}")
 
-            # current_lc now uses the modified (filled) lc_lk flux
             current_lc = LightCurveData(
                 time=np.asarray(lc_lk.time.value),
                 flux=np.asarray(lc_lk.flux.value),
@@ -52,13 +66,15 @@ def find_all_planets(
                 pbar.set_description(f"Stopping at {len(unique_results)} planets")
                 print(result.reliability_flags)
                 pbar.update(max_planets - i)
+                if progress_callback:
+                    progress_callback("done", len(unique_results), None)
                 break
 
             # Create the mask
             mask = lc_lk.create_transit_mask(
                 period=result.best_period,
                 transit_time=result.best_t0,
-                duration=result.best_duration * 3.0
+                duration=result.best_duration * 3.0,
             )
 
             # Check for ghosts/duplicates
@@ -70,7 +86,7 @@ def find_all_planets(
                     is_dup = True
                     break
 
-            # Save plot before we overwrite the flux
+            # Save diagnostic plot before we overwrite the flux
             if debug_dir is not None:
                 _save_mask_debug_plot(
                     time=np.asarray(lc_lk.time.value),
@@ -82,20 +98,37 @@ def find_all_planets(
                     target_name=lc.target_name,
                 )
 
-            # MEDIAN FILL: Flatten the transits instead of deleting them
-            # This keeps the time array continuous and the BLS algorithm happy
+            # Capture mask_data for diagnostic plots before median fill
+            mask_data.append({
+                "time": np.asarray(lc_lk.time.value).copy(),
+                "flux": np.asarray(lc_lk.flux.value).copy(),
+                "mask": np.asarray(mask).copy(),
+            })
+
+            # MEDIAN FILL: Flatten the transits instead of deleting them.
+            # Keeps the time array continuous so BLS stays happy.
             lc_lk.flux.value[mask] = np.nanmedian(lc_lk.flux.value)
 
             if is_dup:
+                if progress_callback:
+                    progress_callback("duplicate", len(unique_results), result.best_period)
                 continue
 
-            # Store and update UI
             unique_results.append(result)
             pbar.set_postfix(period=f"{result.best_period:.2f}d", sde=f"{result.sde:.1f}")
             pbar.update(1)
             logger.info(f"Planet added: {result.best_period:.4f}d. Masked and continuing...")
+            if progress_callback:
+                progress_callback("found", len(unique_results), result.best_period)
 
-    return unique_results
+    # Pass 2: re-detrend with all transit windows explicitly masked so the
+    # biweight trend is estimated from pure stellar continuum. This is what
+    # MCMC should fold and fit — not the rough Pass-1 LC.
+    if progress_callback:
+        progress_callback("redetrend", len(unique_results), None)
+    refined_lc = redetrend_with_mask(lc, unique_results)
+
+    return unique_results, mask_data, refined_lc
 
 def _save_mask_debug_plot(
     time: np.ndarray,

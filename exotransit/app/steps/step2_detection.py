@@ -10,10 +10,6 @@ import logging
 import streamlit as st
 from exotransit.detection.multi_planet import find_all_planets
 from exotransit.viz.plots import plot_bls_power_spectrum, plot_phase_fold, plot_transit_mask
-from exotransit.detection.bls import run_bls
-import lightkurve as lk
-import numpy as np
-from exotransit.pipeline.light_curves import LightCurveData, redetrend_with_mask
 
 logger = logging.getLogger(__name__)
 
@@ -100,65 +96,52 @@ was previously hidden beneath a stronger neighbor.
     # Run detection if not cached
     conf = st.session_state.conf
     if st.session_state.all_bls is None:
+        _ORDINALS = ["one", "two", "three", "four", "five", "six", "seven"]
+
+        status_text = st.empty()
+        status_text.markdown(
+            '<p style="font-family:\'DM Mono\',monospace; font-size:0.8rem; color:#94a3b8;">'
+            '⟳ Scanning period grid…</p>',
+            unsafe_allow_html=True,
+        )
+
+        def _on_progress(event, n_found, period):
+            if event == "found":
+                label = _ORDINALS[n_found - 1] if n_found <= len(_ORDINALS) else str(n_found)
+                period_str = f" (P = {period:.3f} d)" if period else ""
+                status_text.markdown(
+                    f'<p style="font-family:\'DM Mono\',monospace; font-size:0.8rem; color:#4ade80;">'
+                    f'✓ Found {label} planet{period_str} — checking for more…</p>',
+                    unsafe_allow_html=True,
+                )
+            elif event == "duplicate":
+                status_text.markdown(
+                    '<p style="font-family:\'DM Mono\',monospace; font-size:0.8rem; color:#94a3b8;">'
+                    '⟳ Duplicate period detected — masking and continuing…</p>',
+                    unsafe_allow_html=True,
+                )
+            elif event == "redetrend":
+                label = _ORDINALS[n_found - 1] if n_found <= len(_ORDINALS) else str(n_found)
+                status_text.markdown(
+                    f'<p style="font-family:\'DM Mono\',monospace; font-size:0.8rem; color:#94a3b8;">'
+                    f'⟳ {n_found} planet{"s" if n_found != 1 else ""} found — refining detrend for MCMC…</p>',
+                    unsafe_allow_html=True,
+                )
+            elif event == "done":
+                status_text.empty()
+
         with st.spinner("Searching for planets…"):
             try:
-                results = []
-                mask_data = []
-                lc_lk = lk.LightCurve(time=lc.time, flux=lc.flux, flux_err=lc.flux_err)
-                max_planets = conf.max_planets
-
-                for i in range(max_planets):
-                    current_lc = LightCurveData(
-                        time=np.asarray(lc_lk.time.value),
-                        flux=np.asarray(lc_lk.flux.value),
-                        flux_err=np.asarray(lc_lk.flux_err.value),
-                        mission=lc.mission,
-                        target_name=lc.target_name,
-                        sector_or_quarter=lc.sector_or_quarter,
-                        raw_time=lc.raw_time,
-                        raw_flux=lc.raw_flux,
-                    )
-
-                    result = run_bls(
-                        current_lc,
-                        min_period=conf.bls.min_period,
-                        max_period=conf.bls.max_period,
-                        max_period_grid_points=conf.bls.max_period_grid_points,
-                    )
-
-                    if not result.is_reliable:
-                        logger.warning(
-                            f"[{lc.target_name}] Stopping after {len(results)} planet(s) found — "
-                            f"pass {i+1} returned unreliable candidate "
-                            f"(period={result.best_period:.4f}d, "
-                            f"depth={result.transit_depth*1e6:.1f}ppm, "
-                            f"SDE={result.sde:.2f}, SNR={result.snr:.2f})"
-                        )
-                        for flag in result.reliability_flags:
-                            logger.warning(f"  [{lc.target_name}]  {flag}")
-                        break
-
-                    results.append(result)
-
-                    mask = lc_lk.create_transit_mask(
-                        period=result.best_period,
-                        transit_time=result.best_t0,
-                        duration=result.best_duration * 1.5,
-                    )
-                    mask_data.append({
-                        "time": np.array(current_lc.time),
-                        "flux": np.array(current_lc.flux),
-                        "mask": np.asarray(mask),
-                    })
-                    lc_lk = lc_lk[~mask]
-
-                # Pass 2: re-detrend with all transit times explicitly masked.
-                # This removes any residual depth suppression from Pass 1 and
-                # gives MCMC a cleaner light curve to fold and fit.
-                if results:
-                    refined_lc = redetrend_with_mask(lc, results)
-                    st.session_state.lc = refined_lc
-
+                results, mask_data, refined_lc = find_all_planets(
+                    lc,
+                    max_planets=conf.max_planets,
+                    min_period=conf.bls.min_period,
+                    max_period=conf.bls.max_period,
+                    max_period_grid_points=conf.bls.max_period_grid_points,
+                    progress_callback=_on_progress,
+                )
+                status_text.empty()
+                st.session_state.lc = refined_lc
                 st.session_state.all_bls = results
                 st.session_state.all_bls_mask_data = mask_data
 

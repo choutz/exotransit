@@ -33,7 +33,7 @@ if __name__ == "__main__":
         print(f"  Median uncertainty: {np.median(lc.flux_err):.6f}")
 
         print("\nSearching for multiple planets...")
-        results = find_all_planets(
+        results, _, refined_lc = find_all_planets(
             lc,
             max_planets=conf.max_planets,
             min_period=conf.bls.min_period,

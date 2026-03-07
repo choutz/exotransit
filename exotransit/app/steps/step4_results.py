@@ -94,6 +94,9 @@ def render():
                     <div class="metric-val">{r_earth[0]:.1f}</div>
                     <div class="metric-unit">R<sub>⊕</sub></div>
                     <div class="metric-label">Planet radius</div>
+                    <div style="font-family:'DM Mono',monospace; font-size:0.65rem; color:#94a3b8; margin-top:0.2rem;">
+                        +{r_earth[2]:.3f} / -{r_earth[1]:.3f}
+                    </div>
                 </div>
                 <div>
                     <div class="metric-val">{a_au[0]:.4f}</div>

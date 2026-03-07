@@ -2,7 +2,9 @@
 
 A Python pipeline for detecting and characterizing exoplanet transits from Kepler photometry. Given a star name, it downloads the light curve, searches for periodic transit signals, fits a physical model using MCMC, and derives planet properties with full uncertainty propagation.
 
-Validated on Kepler-5b (single planet, hot Jupiter), Kepler-7b, and Kepler-11 (six-planet system).
+**Live app: [exotransit.streamlit.app](https://exotransit.streamlit.app/)**
+
+Validated on stars with varying numbers of planets, including Kepler-97, Kepler-183, Kepler-203, Kepler-215, and Kepler-20.
 
 ---
 
@@ -18,7 +20,11 @@ After stitching, detrending runs in two passes:
 
 **Pass 1 (rough):** A biweight filter runs across the full stitched baseline. The biweight is an M-estimator that down-weights outliers — including transit dips — so it does not absorb them into the trend. This produces a clean enough light curve for BLS period search, and preserves transit depth significantly better than Savitzky-Golay, which can attenuate signals whose duration approaches the filter window.
 
-**Pass 2 (refined):** After BLS has identified all planet periods, the biweight runs again on the original normalized flux with all detected transit windows explicitly excluded (set to NaN). The trend is now estimated purely from stellar continuum with zero transit contamination. The refined light curve is what MCMC fits. MCMC re-folds the refined LC directly rather than using folded data stored by BLS, so the depth improvement propagates through to the final planet radius.
+**Pass 2 (refined):** After BLS has identified all planet periods, the biweight runs again — but this time every point inside a transit window (3× the BLS-estimated duration, centered on each transit time) is explicitly set to NaN before the filter sees anything. The sliding window then has no transit flux to work with at those times: the trend at every point near a transit is estimated entirely from out-of-transit stellar continuum on either side. When the flux is divided by this trend, the full transit depth is recovered without any suppression.
+
+This matters because even the biweight's down-weighting in Pass 1 is not the same as full exclusion. A transit dip receives low but non-zero weight in the biweight kernel, which slightly pulls the local trend estimate downward and partially fills in the dip. For small planets — where a few percent of depth suppression is a meaningful fraction of the signal — Pass 1 alone underestimates `rp`. Pass 2 eliminates this bias entirely: the trend the MCMC light curve is divided by was never influenced by the transit signal at all.
+
+The result is that MCMC fits a light curve whose transit depths reflect the actual photon counts — as close to the raw signal as possible while still removing the slow stellar and instrumental trends that would otherwise swamp it. MCMC re-folds this refined LC directly rather than using any folded data stored by BLS, so the depth improvement propagates through to the final planet radius.
 
 ### 2. Period search — Box Least Squares (BLS)
 

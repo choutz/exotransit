@@ -4,11 +4,11 @@ exotransit/app/steps/step0_search.py
 import streamlit as st
 
 EXAMPLE_TARGETS = [
-    ("Kepler-7",  "Inflated hot Jupiter, single planet"),
-    ("Kepler-9",  "First multi-planet system confirmed"),
-    ("Kepler-15", "Hot Jupiter, quiet host star"),
-    ("Kepler-80", "5-planet resonant chain"),
-    ("Kepler-11", "6-planet system, benchmark test"),
+    ("Kepler-97",  "Single planet system with a gas giant planet orbiting a G-type star"),
+    ("Kepler-183", "A two planet system discovered in 2014 in the constellation Cygnus"),
+    ("Kepler-203", "A very similar star to our Sun with three tightly packed planets"),
+    ("Kepler-215", "A complex four planet system that stress-tests multi-planet masking and detection"),
+    ("Kepler-20",  "A five planet system where the planet sizes bizarrely alternate between large and small"),
 ]
 
 _RESULT_KEYS = ["lc", "stellar", "ld", "all_bls", "all_bls_mask_data", "all_mcmc", "all_physics", "error"]
@@ -40,7 +40,7 @@ def render():
     st.markdown('<div class="step-header">Target Star</div>', unsafe_allow_html=True)
     target = st.text_input(
         label="target",
-        placeholder="e.g. Kepler-7, Kepler-11, Kepler-80",
+        placeholder="e.g. Kepler-97, Kepler 183",
         label_visibility="collapsed",
         value=st.session_state.get("prefill_target", ""),
     )
