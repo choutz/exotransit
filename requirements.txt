@@ -14,3 +14,4 @@ scipy==1.17.1
 streamlit==1.54.0
 tqdm==4.67.3
 uncertainties==3.2.3
+setuptools==82.0.0
