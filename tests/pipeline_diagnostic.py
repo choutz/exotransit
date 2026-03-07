@@ -26,7 +26,7 @@ from tests.helpers import get_light_curve
 from exotransit.detection.bls import run_bls
 from exotransit.mcmc.fit_mcmc import run_mcmc
 from exotransit.mcmc.helpers import _transit_model, _log_likelihood, _log_probability
-from exotransit.pipeline.light_curves import LightCurveData
+from exotransit.pipeline.light_curves import LightCurveData, redetrend_with_mask
 from exotransit.physics.stars import query_stellar_params
 from exotransit.physics.limb_darkening import get_limb_darkening
 
@@ -168,6 +168,14 @@ def run_diagnostic(kepler_num: int, truth_df: pd.DataFrame):
             continue
 
         found_bls.append(bls)
+
+    # ── Pass 2: re-detrend with all transit windows masked ────────────────────
+    if found_bls:
+        log.info(f"\n  Pass-2 re-detrend: masking {len(found_bls)} planet(s) and re-running biweight...")
+        lc = redetrend_with_mask(lc, found_bls)
+        log.info(f"  Refined LC: {len(lc.time)} points")
+
+    for planet_i, bls in enumerate(found_bls):
         _diagnose_planet(planet_i, bls, stellar, ld, truth_rows, lc)
 
     # ── summary ────────────────────────────────────────────────────────────────

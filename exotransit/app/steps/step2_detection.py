@@ -13,7 +13,7 @@ from exotransit.viz.plots import plot_bls_power_spectrum, plot_phase_fold, plot_
 from exotransit.detection.bls import run_bls
 import lightkurve as lk
 import numpy as np
-from exotransit.pipeline.light_curves import LightCurveData
+from exotransit.pipeline.light_curves import LightCurveData, redetrend_with_mask
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +37,9 @@ def render():
         orbit on top of the last — and scores how well a flat-bottomed rectangular dip fits
         the combined signal. A spike in the power spectrum flags a real repeating transit.<br><br>
         After each detection, those in-transit points are masked out and the search reruns,
-        potentially revealing additional planets hiding underneath.
+        potentially revealing additional planets hiding underneath. Once all planets are
+        identified, the light curve is re-detrended with all transit windows explicitly
+        excluded — giving MCMC a cleaner baseline with no residual transit suppression.
     </div>
     """, unsafe_allow_html=True)
 
@@ -149,6 +151,13 @@ was previously hidden beneath a stronger neighbor.
                         "mask": np.asarray(mask),
                     })
                     lc_lk = lc_lk[~mask]
+
+                # Pass 2: re-detrend with all transit times explicitly masked.
+                # This removes any residual depth suppression from Pass 1 and
+                # gives MCMC a cleaner light curve to fold and fit.
+                if results:
+                    refined_lc = redetrend_with_mask(lc, results)
+                    st.session_state.lc = refined_lc
 
                 st.session_state.all_bls = results
                 st.session_state.all_bls_mask_data = mask_data

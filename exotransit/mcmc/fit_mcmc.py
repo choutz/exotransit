@@ -28,6 +28,7 @@ Exposure time: derived from light curve cadence for correct
 import logging
 import numpy as np
 import emcee
+import lightkurve as lk
 from dataclasses import dataclass
 
 from exotransit.mcmc.helpers import _log_probability
@@ -176,14 +177,21 @@ def run_mcmc(
         f"cadence={exp_time_days * 24 * 60:.1f} min"
     )
 
-    # Clip to transit region — scale window to 3x BLS duration
-    # so ingress/egress are fully included but out-of-transit noise is limited
-    # window = max(bls.best_duration * 3.0, 0.3)
-    window = 0.5
-    transit_mask = np.abs(bls.folded_time) < window
-    time = bls.folded_time[transit_mask]
-    flux = bls.folded_flux[transit_mask]
-    flux_err = bls.folded_flux_err[transit_mask]
+    # Re-fold from lc so MCMC uses the refined (Pass-2 re-detrended) flux,
+    # not the BLS-stored folded data which was computed from the rough LC.
+    lc_lk    = lk.LightCurve(time=lc.time, flux=lc.flux, flux_err=lc.flux_err)
+    folded   = lc_lk.fold(period=bls.best_period, epoch_time=bls.best_t0)
+    fold_t   = np.asarray(folded.time.value)
+    fold_f   = np.asarray(folded.flux.value)
+    fold_err = np.asarray(folded.flux_err.value)
+
+    # Clip to transit region: 3× BLS duration so ingress/egress are fully
+    # included, but out-of-transit noise is limited.
+    window       = max(bls.best_duration * 3.0, 0.3)
+    transit_mask = np.abs(fold_t) < window
+    time     = fold_t[transit_mask]
+    flux     = fold_f[transit_mask]
+    flux_err = fold_err[transit_mask]
 
     period = bls.best_period
     rp_init = np.sqrt(max(bls.transit_depth, 1e-6))

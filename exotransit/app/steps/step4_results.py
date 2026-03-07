@@ -145,8 +145,12 @@ def render():
     st.markdown("""
     <div class="explain-box" style="margin-top: 2rem;">
         <strong>Methodology:</strong>
-        Raw photometry fetched from NASA MAST via lightkurve.
-        Detrended with Savitzky–Golay filter, normalized per quarter.
+        Raw photometry fetched from NASA MAST via lightkurve. Each quarter
+        normalized independently to remove inter-quarter flux jumps, then
+        stitched. Detrending runs in two passes: a rough biweight filter for
+        BLS period search (Pass 1), then a refined biweight with all detected
+        transit windows explicitly masked so the trend is estimated from pure
+        stellar continuum (Pass 2). MCMC fits the Pass-2 light curve.
         Transit detection via Box Least Squares (Kovács et al. 2002).
         Transit model fitting via MCMC (emcee) with Mandel–Agol batman model.
         Limb darkening fixed to Claret &amp; Bloemen (2011) ATLAS9 values.
@@ -155,6 +159,42 @@ def render():
         propagated through the full MCMC posterior.
     </div>
     """, unsafe_allow_html=True)
+
+    with st.expander("A note on uncertainty quantification"):
+        st.markdown(r"""
+**What the uncertainties here represent — and what they don't**
+
+The error bars on planet radius and impact parameter come from the MCMC posterior:
+the spread of transit model parameters consistent with the detrended light curve.
+This correctly captures *photon noise* — the random scatter in individual
+brightness measurements.
+
+**What is not captured:** the detrended flux is treated as fixed truth.
+The biweight filter removed the stellar variability trend before MCMC ever ran.
+Any uncertainty in *where the trend was* — including whether the filter slightly
+suppressed a transit, or misidentified a stellar oscillation as continuum —
+does not appear in the posterior. The reported error bars are therefore a lower
+bound on the true parameter uncertainty.
+
+**How heavyweight research handles this:** professional pipelines model the
+stellar variability and the planet transit *simultaneously* using a Gaussian
+Process (GP):
+
+$$\text{Expected flux} = \underbrace{M(t \mid t_0, r_p, b)}_{\text{planet model}} + \underbrace{\mathcal{GP}(\theta)}_{\text{stellar noise kernel}}$$
+
+The MCMC then explores both the transit parameters and the GP hyperparameters at
+once. This correctly propagates the uncertainty from stellar variability into the
+planet radius posterior, and avoids any pre-filtering step.
+
+This project does not implement GP detrending because (1) it requires $O(N^3)$
+covariance matrix operations that are too slow to run in real time on Streamlit,
+and (2) GP hyperparameter inference for an unknown star requires careful prior
+selection and is not straightforward to automate. For a portfolio project
+demonstrating the detection-and-characterization pipeline, the biweight
+pre-filter is a reasonable and widely-used approximation.
+""")
+
+    st.markdown("<div style='margin: 2rem 0;'></div>", unsafe_allow_html=True)
 
     st.markdown("<div style='margin: 2rem 0;'></div>", unsafe_allow_html=True)
 

@@ -109,8 +109,8 @@ models for this star's temperature, gravity, and metallicity
         Kepler rotated 90° to keep its solar panels facing the Sun, landing the star on
         different pixels with slightly different sensitivity. The flux level shifts but
         the underlying signal is the same.<br><br>
-        <strong>Detrended &amp; normalized (bottom):</strong> After removing slow instrumental
-        drifts with a Savitzky–Golay filter and normalizing each segment to 1.0, the transit
+        <strong>Detrended &amp; normalized (bottom):</strong> After normalizing each segment to 1.0
+        and removing slow instrumental drifts with a robust biweight filter, the transit
         dips become visible as tiny downward spikes — each one a planet passing in front of
         the star. The highlighted points are candidates flagged at &gt;3σ below the median.
     </div>

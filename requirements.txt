@@ -1,1 +1,11 @@
-setuptools
+astropy
+astroquery
+batman-package
+emcee
+lightkurve
+numpy
+pandas
+plotly
+requests
+streamlit
+tqdm

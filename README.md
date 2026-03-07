@@ -12,7 +12,13 @@ Validated on Kepler-5b (single planet, hot Jupiter), Kepler-7b, and Kepler-11 (s
 
 Raw photometry is downloaded from NASA MAST via [lightkurve](https://docs.lightkurve.org/). For Kepler targets, multiple quarters (~90 days each) are downloaded and stitched together. Each quarter is detrended and normalized independently before stitching — this removes inter-quarter flux jumps caused by the spacecraft rotating and landing the star on a different detector pixel.
 
-Preprocessing per quarter: remove NaNs → sigma-clip outliers (5σ) → Savitzky-Golay detrend → normalize to unit flux.
+Per-quarter preprocessing: remove NaNs → sigma-clip outliers (5σ) → normalize to unit flux. Normalization removes inter-quarter flux jumps without touching the transit signal.
+
+After stitching, detrending runs in two passes:
+
+**Pass 1 (rough):** A biweight filter runs across the full stitched baseline. The biweight is an M-estimator that down-weights outliers — including transit dips — so it does not absorb them into the trend. This produces a clean enough light curve for BLS period search, and preserves transit depth significantly better than Savitzky-Golay, which can attenuate signals whose duration approaches the filter window.
+
+**Pass 2 (refined):** After BLS has identified all planet periods, the biweight runs again on the original normalized flux with all detected transit windows explicitly excluded (set to NaN). The trend is now estimated purely from stellar continuum with zero transit contamination. The refined light curve is what MCMC fits. MCMC re-folds the refined LC directly rather than using folded data stored by BLS, so the depth improvement propagates through to the final planet radius.
 
 ### 2. Period search — Box Least Squares (BLS)
 
@@ -78,9 +84,9 @@ Uncertainty propagation is done by sampling: stellar radius, mass, and temperatu
 
 ```
 pipeline/
-  light_curves.py      — download, detrend, stitch (MAST via lightkurve)
+  light_curves.py      — download, stitch, biweight-detrend (MAST via lightkurve)
   observations.py      — list available quarters/sectors without downloading
-  helpers.py           — Savitzky-Golay window sizing, flux_err extraction
+  helpers.py           — flux_err extraction
 
 detection/
   bls.py               — BLS period search, BLSResult dataclass
@@ -180,10 +186,22 @@ The TCE-style vetting thresholds were tuned against the Kepler pipeline's assump
 Planets in or near mean-motion resonance (e.g. Kepler-36, some Kepler-11 pairs) have transit times that shift by minutes to hours from orbit to orbit due to gravitational interactions. BLS assumes perfectly periodic transits and smears out TTV signals when phase-folding, reducing detection SNR. Handling TTVs properly requires a separate dynamical modeling step not currently implemented.
 
 **Stellar activity**
-Starspots, flares, and coronal mass ejections all produce flux variations that can alias into the BLS period grid or corrupt the transit depth estimate. The current detrending (Savitzky-Golay) removes slow trends but is not specifically designed to handle short-duration flares or rotationally-modulated spot patterns.
+Starspots, flares, and coronal mass ejections all produce flux variations that can alias into the BLS period grid or corrupt the transit depth estimate. The biweight filter removes slow trends but is not specifically designed to handle short-duration flares or rotationally-modulated spot patterns.
 
 **Eclipsing binary contamination**
 Eclipsing binaries are a major source of false positives in transit surveys. The pipeline catches the most blatant cases via TCE-04 (duty cycle) and TCE-13 (depth > 3%), but anything more subtle — odd/even depth alternation, secondary eclipses at phase 0.5, background EBs blended inside the photometric aperture — requires centroid motion analysis, radial velocity follow-up, or multi-wavelength photometry to rule out. Attempting to do this from Kepler photometry alone produces enough false positives and false negatives that it's not worth the complexity. So: if the target is actually an eclipsing binary that passes the coarse cuts, the pipeline will fit it and give you numbers. The numbers will be wrong.
+
+**Detrending uncertainty is not propagated into MCMC posteriors**
+
+The biweight filter produces a detrended light curve that MCMC then treats as fixed truth. Any uncertainty in *where the stellar trend was* — whether the filter slightly suppressed a transit, or whether a stellar oscillation was misidentified as continuum — does not appear in the posterior. The reported error bars therefore represent photon noise only, not the full uncertainty budget.
+
+The correct approach for rigorous uncertainty quantification is **simultaneous GP + transit modeling**: instead of pre-filtering, model the stellar variability as a Gaussian Process kernel and the planet as a Mandel-Agol transit model, then run MCMC over both at once:
+
+```
+Expected flux = transit_model(t₀, rp, b) + GP(θ_stellar)
+```
+
+This correctly folds the uncertainty from stellar noise into the planet parameter posteriors. It is not implemented here because: (1) GP covariance matrix operations scale as O(N³) in the number of data points — far too slow for real-time use on Streamlit and impractical even locally for multi-quarter Kepler baselines; and (2) inferring GP hyperparameters for an unknown star requires careful prior selection and is not straightforward to automate across arbitrary targets. The biweight pre-filter is a widely-used and reasonable approximation for a transit characterization pipeline at this level.
 
 **Why real planet discoveries get their own papers**
 

@@ -126,7 +126,7 @@ def run_bls(
     Parameters
     ----------
     lc : LightCurveData
-        Output from fetch.fetch_light_curve() or fetch_stitched_light_curve().
+        Output from fetch.fetch_light_curve().
     min_period : float
         Minimum orbital period to search in days.
     max_period : float

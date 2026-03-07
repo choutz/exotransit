@@ -4,15 +4,6 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def _compute_window_points(time_array: np.ndarray) -> int:
-    """Odd integer number of cadences spanning ~3 days. Savgol requires odd."""
-    cadence_days = np.nanmedian(np.diff(time_array))
-    window = int(3.0 / cadence_days)
-    if window % 2 == 0:
-        window += 1
-    return max(window, 3)
-
-
 def _extract_flux_err(lc, flux: np.ndarray) -> np.ndarray:
     """Return flux_err from lc, filling NaNs with median. Falls back to std(flux)."""
     if lc.flux_err is not None:
