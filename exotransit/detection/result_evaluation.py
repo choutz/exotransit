@@ -57,8 +57,8 @@ def assess_reliability(
     flags = []
 
     # ── TCE-01/02: Signal strength ────────────────────────────────────────────
-    SDE_THRESHOLD = 19   # Determined empirically from testing
-    SNR_THRESHOLD = 15   # Determined empirically from testing
+    SDE_THRESHOLD = 12   # Determined empirically from testing
+    SNR_THRESHOLD = 12   # Determined empirically from testing
     if sde < SDE_THRESHOLD:
         flags.append(f"TCE-01: SDE={sde:.1f} below {SDE_THRESHOLD} threshold (Jenkins+2010)")
     if snr < SNR_THRESHOLD:

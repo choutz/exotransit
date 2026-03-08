@@ -100,9 +100,6 @@ Kepler-7b is the clearest example: the original discovery paper used a more comp
 **Model mismatch is undetectable without injection tests.**
 This is the general version of the above. If the model is wrong in a way that still allows convergence, there is no signal of failure in the posterior. Injection-recovery (simulate a transit with known parameters, run the full pipeline, check if you get them back) is the correct test. It separates "the sampler worked" from "the model was right."
 
-**Vetting thresholds are tunable and empirically measurable.**
-The SDE and SNR floors in the reliability vetting are just numbers — and the right numbers depend on your actual data, not theory. After running the pipeline against 1,400+ Kepler systems and logging every detection's SDE and SNR alongside whether it matched a known planet, it became straightforward to scan the full (SDE, SNR) grid and compute precision and recall at every combination. The result was a Pareto frontier showing exactly which threshold pairs eliminate false positives without losing real detections. The best point found — SDE ≥ 19, SNR ≥ 15 — achieves 100% recall (all 88 real planets retained) and 98.9% precision (45 of 46 false positives eliminated, 1 remaining), F1 = 0.994. This is not sophisticated ML; it is just measuring outcomes across a grid and picking the number that works. The lesson is that vetting thresholds should be treated as empirical parameters derived from validation data, not constants copied from a paper written for a different instrument and a different noise floor.
-
 ---
 
 ## Architecture
