@@ -12,3 +12,4 @@ tests/.lc_cache/
 tests/viz_output/
 /exotransit/physics/claret2011_full.csv
 tests/debug_masks/
+*.log
