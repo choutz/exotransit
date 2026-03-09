@@ -23,22 +23,36 @@ Masking:
     We mask anything with SDE > 3 (basically everything above pure noise).
     We stop a target's search when SDE drops below 3 or we reach max_iters.
 
+Parallelism:
+    Targets are processed in parallel using ProcessPoolExecutor.
+    Each worker runs the full LC fetch + BLS loop for one target and
+    returns its candidate list. Logging is routed through a shared
+    multiprocessing queue so all output goes to the same log file.
+
+    Default: 4 workers. Tune with --workers N.
+    Note: more than ~6 workers may hit MAST download rate limits.
+
 Output:
     tests/threshold_optimization/candidates_YYYYMMDD_HHMMSS.csv
     tests/threshold_optimization/permissive_test_YYYYMMDD_HHMMSS.log
 
 Run from project root:
     caffeinate -i python tests/threshold_optimization/run_permissive_test.py
+    caffeinate -i python tests/threshold_optimization/run_permissive_test.py --workers 6
 """
 
 import sys
+import os
 import logging
+import argparse
+import multiprocessing
 import numpy as np
 import pandas as pd
 import lightkurve as lk
 from pathlib import Path
 from datetime import datetime, timedelta
-import time
+from concurrent.futures import ProcessPoolExecutor, as_completed
+from logging.handlers import QueueHandler, QueueListener
 
 # ── Path setup ─────────────────────────────────────────────────────────────────
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
@@ -48,7 +62,6 @@ from config import MEDIUM
 from tests.helpers import get_light_curve
 from exotransit.detection.bls import run_bls
 from exotransit.pipeline.light_curves import LightCurveData
-from exotransit.physics.stars import query_stellar_params
 
 # ── Logging ────────────────────────────────────────────────────────────────────
 OUT_DIR   = Path(__file__).parent
@@ -57,38 +70,56 @@ timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 LOG_FILE  = OUT_DIR / f"permissive_test_{timestamp}.log"
 CSV_FILE  = OUT_DIR / f"candidates_{timestamp}.csv"
 
-fmt = "%(asctime)s  %(levelname)-8s  %(message)s"
-formatter = logging.Formatter(fmt)
+_LOG_FMT = "%(asctime)s  %(levelname)-8s  %(message)s"
 
-root = logging.getLogger()
-root.setLevel(logging.INFO)
-root.handlers.clear()
+_NOISY_LOGGERS = [
+    "lightkurve", "lightkurve.utils",
+    "exotransit.detection.bls", "exotransit.detection.multi_planet",
+    "exotransit.pipeline.light_curves",
+    "exotransit.physics.stars", "exotransit.physics.limb_darkening",
+]
 
-_sh = logging.StreamHandler(sys.stdout)
-_sh.setFormatter(formatter)
-root.addHandler(_sh)
 
-_fh = logging.FileHandler(LOG_FILE, encoding="utf-8")
-_fh.setFormatter(formatter)
-root.addHandler(_fh)
+def _setup_main_logging(log_queue: multiprocessing.Queue):
+    """Configure root logger in the main process, backed by a QueueListener."""
+    formatter = logging.Formatter(_LOG_FMT)
 
-logger = logging.getLogger("permissive_test")
+    sh = logging.StreamHandler(sys.stdout)
+    sh.setFormatter(formatter)
 
-# Suppress noisy sub-loggers
-for _mod in ["lightkurve", "lightkurve.utils", "exotransit.detection.bls",
-             "exotransit.detection.multi_planet", "exotransit.pipeline.light_curves",
-             "exotransit.physics.stars", "exotransit.physics.limb_darkening"]:
-    logging.getLogger(_mod).setLevel(logging.ERROR)
+    fh = logging.FileHandler(LOG_FILE, encoding="utf-8")
+    fh.setFormatter(formatter)
+
+    root = logging.getLogger()
+    root.setLevel(logging.INFO)
+    root.handlers.clear()
+    root.addHandler(sh)
+    root.addHandler(fh)
+
+    # QueueListener drains the queue from worker processes and forwards
+    # records to the main-process handlers above.
+    listener = QueueListener(log_queue, sh, fh, respect_handler_level=True)
+    listener.start()
+
+    for mod in _NOISY_LOGGERS:
+        logging.getLogger(mod).setLevel(logging.ERROR)
+
+    return listener
+
+
+def _worker_logging_init(log_queue: multiprocessing.Queue):
+    """Called once in each worker process — routes all logging through the queue."""
+    root = logging.getLogger()
+    root.handlers.clear()
+    root.addHandler(QueueHandler(log_queue))
+    root.setLevel(logging.INFO)
+    for mod in _NOISY_LOGGERS:
+        logging.getLogger(mod).setLevel(logging.ERROR)
 
 
 # ── Feature extraction ─────────────────────────────────────────────────────────
 
 def extract_features(result, lc: LightCurveData) -> dict:
-    """
-    Compute the full feature vector for a BLS candidate.
-    Replicates the quantities computed inside assess_reliability so the
-    optimizer has the same information the vetting logic uses.
-    """
     baseline      = lc.time.max() - lc.time.min()
     cadence_days  = float(np.median(np.diff(lc.time)))
 
@@ -97,7 +128,6 @@ def extract_features(result, lc: LightCurveData) -> dict:
     duty_cycle          = result.best_duration / result.best_period
     duration_h          = result.best_duration * 24.0
 
-    # n_transit_points: recompute from folded data (same method as bls.py)
     try:
         lc_lk  = lk.LightCurve(time=lc.time, flux=lc.flux, flux_err=lc.flux_err)
         folded = lc_lk.fold(period=result.best_period, epoch_time=result.best_t0)
@@ -106,7 +136,6 @@ def extract_features(result, lc: LightCurveData) -> dict:
     except Exception:
         n_transit_pts = 0
 
-    # Coverage ratio (TCE-06)
     expected_pts   = max(result.best_duration / cadence_days, 2.0)
     coverage_ratio = n_transit_pts / expected_pts if expected_pts > 0 else 0.0
 
@@ -128,32 +157,32 @@ def extract_features(result, lc: LightCurveData) -> dict:
     }
 
 
-# ── Per-target permissive search ───────────────────────────────────────────────
+# ── Per-target permissive search (runs in worker process) ──────────────────────
 
 def run_target_permissive(
     target_name: str,
-    truth_periods: list[float],
+    truth_periods: list,
     truth_n: int,
     conf,
-) -> list[dict]:
+) -> list:
     """
     Run BLS iteratively with no reliability gate. Returns a list of
     candidate feature dicts, each with is_real labeled.
+    Safe to call in a subprocess — all logging goes through QueueHandler.
     """
-    logger.info(f"{'='*60}")
-    logger.info(f"TARGET: {target_name}  (truth: {truth_n} planet(s), periods: {[f'{p:.3f}' for p in truth_periods]})")
+    logger = logging.getLogger("permissive_test.worker")
+    logger.info(f"TARGET: {target_name}  "
+                f"(truth: {truth_n} planet(s), periods: {[f'{p:.3f}' for p in truth_periods]})")
 
-    # ── Light curve ────────────────────────────────────────────────────────────
     try:
         lc = get_light_curve(target_name, mission="Kepler", max_quarters=conf.max_quarters)
-        logger.info(f"  LC: {len(lc.time):,} pts  baseline {lc.time[-1]-lc.time[0]:.1f} d")
+        logger.info(f"  {target_name}: LC {len(lc.time):,} pts  "
+                    f"baseline {lc.time[-1]-lc.time[0]:.1f} d")
     except Exception as e:
-        logger.error(f"  LC FETCH FAILED: {e}")
+        logger.error(f"  {target_name}: LC FETCH FAILED: {e}")
         return []
 
-    # ── Permissive BLS loop ────────────────────────────────────────────────────
-    lc_lk    = lk.LightCurve(time=lc.time, flux=lc.flux, flux_err=lc.flux_err)
-    # max_iters = max(truth_n + 15, 20)
+    lc_lk     = lk.LightCurve(time=lc.time, flux=lc.flux, flux_err=lc.flux_err)
     max_iters = 6
     candidates = []
 
@@ -177,36 +206,33 @@ def run_target_permissive(
                 max_period_grid_points=conf.bls.max_period_grid_points,
             )
         except Exception as e:
-            logger.warning(f"  iter {i}: BLS failed: {e}")
+            logger.warning(f"  {target_name} iter {i}: BLS failed: {e}")
             break
 
-        # Stop if the signal is pure noise
         if result.sde < 3.0:
-            logger.info(f"  iter {i}: SDE={result.sde:.2f} < 3.0 — stopping (noise floor)")
+            logger.info(f"  {target_name} iter {i}: SDE={result.sde:.2f} < 3 — noise floor, stopping")
             break
 
-        # Label this candidate before masking
         is_real = int(any(
             abs(result.best_period - tp) / tp < 0.05
             for tp in truth_periods
         ))
 
         features = extract_features(result, current_lc)
-        row = {
-            "target":     target_name,
-            "iteration":  i,
-            "is_real":    is_real,
+        candidates.append({
+            "target":    target_name,
+            "iteration": i,
+            "is_real":   is_real,
             **features,
-        }
-        candidates.append(row)
+        })
 
         label = "REAL" if is_real else "FP"
         logger.info(
-            f"  iter {i}: P={result.best_period:.4f}d  SDE={result.sde:.2f}  "
-            f"SNR={result.snr:.2f}  depth={result.transit_depth*1e6:.1f}ppm  [{label}]"
+            f"  {target_name} iter {i}: P={result.best_period:.4f}d  "
+            f"SDE={result.sde:.2f}  SNR={result.snr:.2f}  "
+            f"depth={result.transit_depth*1e6:.1f}ppm  [{label}]"
         )
 
-        # Mask this signal (SDE > 3 = mask it, otherwise pure noise, stop)
         try:
             mask = lc_lk.create_transit_mask(
                 period=result.best_period,
@@ -215,39 +241,55 @@ def run_target_permissive(
             )
             lc_lk.flux.value[mask] = np.nanmedian(lc_lk.flux.value)
         except Exception as e:
-            logger.warning(f"  iter {i}: masking failed: {e}")
+            logger.warning(f"  {target_name} iter {i}: masking failed: {e}")
             break
 
     n_real = sum(1 for c in candidates if c["is_real"])
-    n_fp   = len(candidates) - n_real
-    logger.info(f"  Done: {len(candidates)} candidates ({n_real} real, {n_fp} FP)")
+    logger.info(f"  {target_name}: done — {len(candidates)} candidates "
+                f"({n_real} real, {len(candidates)-n_real} FP)")
     return candidates
 
 
 # ── Main ───────────────────────────────────────────────────────────────────────
 
-def parse_values(val) -> list[float]:
+def parse_values(val) -> list:
     if isinstance(val, (int, float)):
         return [float(val)]
     return [float(x.strip()) for x in str(val).split(",")]
 
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--workers", type=int,
+        default=min(4, os.cpu_count() or 4),
+        help="Parallel worker processes (default: min(4, cpu_count)). "
+             "More than ~6 may hit MAST rate limits.",
+    )
+    args = parser.parse_args()
+    n_workers = max(1, args.workers)
+
     conf = MEDIUM
     summary_path = PROJECT_ROOT / "tests" / "summary.csv"
+
+    # ── Logging setup ──────────────────────────────────────────────────────────
+    log_queue = multiprocessing.Queue()
+    listener  = _setup_main_logging(log_queue)
+    logger    = logging.getLogger("permissive_test")
 
     logger.info("=" * 72)
     logger.info("PERMISSIVE BLS TEST — threshold optimization data collection")
     logger.info(f"  Config:     MEDIUM  ({conf.max_quarters} quarters, "
                 f"{conf.bls.max_period_grid_points:,} BLS points)")
+    logger.info(f"  Workers:    {n_workers}")
     logger.info(f"  Truth data: {summary_path}")
     logger.info(f"  Output CSV: {CSV_FILE}")
     logger.info(f"  Log file:   {LOG_FILE}")
     logger.info("=" * 72)
 
+    # ── Load targets ───────────────────────────────────────────────────────────
     df = pd.read_csv(summary_path)
     df["periods_list"] = df["periods_d"].apply(parse_values)
-    df["radii_list"]   = df["radii_Rearth"].apply(parse_values)
     df["min_period"]   = df["periods_list"].apply(min)
     df["max_period"]   = df["periods_list"].apply(max)
 
@@ -258,62 +300,79 @@ def main():
     logger.info(f"Systems with all periods in (2, 100)d: {len(df_run)}")
     logger.info("")
 
-    all_candidates = []
-    n_targets      = len(df_run)
-    t_start        = time.monotonic()
-    target_times   = []  # rolling window of per-target durations for ETA
+    targets = [
+        (f"Kepler-{int(row['Kepler_#'])}", row["periods_list"], int(row["n_planets"]))
+        for _, row in df_run.iterrows()
+    ]
+    n_targets = len(targets)
 
-    for idx, (_, row) in enumerate(df_run.iterrows()):
-        target   = f"Kepler-{int(row['Kepler_#'])}"
-        t_target = time.monotonic()
+    # ── Parallel execution ─────────────────────────────────────────────────────
+    all_candidates  = []
+    completed       = 0
+    completion_times = []          # wall-clock seconds per completed target
+    t_start         = datetime.now()
 
-        candidates = run_target_permissive(
-            target_name=target,
-            truth_periods=row["periods_list"],
-            truth_n=int(row["n_planets"]),
-            conf=conf,
-        )
-        all_candidates.extend(candidates)
+    with ProcessPoolExecutor(
+        max_workers=n_workers,
+        initializer=_worker_logging_init,
+        initargs=(log_queue,),
+    ) as executor:
+        future_to_target = {
+            executor.submit(run_target_permissive, name, periods, n, conf): name
+            for name, periods, n in targets
+        }
 
-        elapsed_target = time.monotonic() - t_target
-        target_times.append(elapsed_target)
-        if len(target_times) > 20:          # rolling window — adapts to recent pace
-            target_times.pop(0)
+        for future in as_completed(future_to_target):
+            target_name = future_to_target[future]
+            t_done = datetime.now()
 
-        done     = idx + 1
-        remaining = n_targets - done
-        elapsed_total = time.monotonic() - t_start
-        avg_per_target = np.mean(target_times)
-        eta_s    = avg_per_target * remaining
-        eta_str  = str(timedelta(seconds=int(eta_s)))
-        elapsed_str = str(timedelta(seconds=int(elapsed_total)))
+            try:
+                candidates = future.result()
+            except Exception as e:
+                logger.error(f"  {target_name}: unhandled exception: {e}")
+                candidates = []
 
-        # ASCII progress bar (40 chars wide)
-        pct  = done / n_targets
-        bar  = ("█" * int(pct * 40)).ljust(40)
-        logger.info(
-            f"  [{bar}] {done}/{n_targets} ({pct*100:.0f}%)  "
-            f"elapsed {elapsed_str}  ETA {eta_str}  "
-            f"({avg_per_target:.0f}s/target)"
-        )
+            all_candidates.extend(candidates)
+            completed += 1
 
-        # Write incrementally so a crash doesn't lose everything
-        if all_candidates:
-            pd.DataFrame(all_candidates).to_csv(CSV_FILE, index=False)
+            # Track per-target wall time (approximate — parallelism means
+            # we measure wall time / n_workers on average)
+            elapsed_total = (t_done - t_start).total_seconds()
+            completion_times.append(elapsed_total / completed)
+            window = completion_times[-20:]   # rolling 20-target window
+            avg_s  = np.mean(window)
+            eta_s  = avg_s * (n_targets - completed)
+
+            pct = completed / n_targets
+            bar = ("█" * int(pct * 40)).ljust(40)
+            logger.info(
+                f"  [{bar}] {completed}/{n_targets} ({pct*100:.0f}%)  "
+                f"elapsed {str(timedelta(seconds=int(elapsed_total)))}  "
+                f"ETA {str(timedelta(seconds=int(eta_s)))}  "
+                f"(~{avg_s:.0f}s/target wall)"
+            )
+
+            # Incremental CSV write — survive a crash
+            if all_candidates:
+                pd.DataFrame(all_candidates).to_csv(CSV_FILE, index=False)
+
+    listener.stop()
 
     if not all_candidates:
-        logger.error("No candidates collected — check errors above.")
+        logging.error("No candidates collected — check errors above.")
         return
 
     out_df = pd.DataFrame(all_candidates)
     out_df.to_csv(CSV_FILE, index=False)
 
-    n_real = out_df["is_real"].sum()
+    n_real = int(out_df["is_real"].sum())
     n_fp   = len(out_df) - n_real
+    total_s = (datetime.now() - t_start).total_seconds()
 
     logger.info("")
     logger.info("=" * 72)
     logger.info("DONE")
+    logger.info(f"  Total wall time:         {str(timedelta(seconds=int(total_s)))}")
     logger.info(f"  Total candidates logged: {len(out_df)}")
     logger.info(f"  Real planets:            {n_real}")
     logger.info(f"  False positives:         {n_fp}")
