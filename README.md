@@ -40,24 +40,15 @@ Two quality metrics are computed:
 
 ### 3. Reliability vetting
 
-Detections are vetted against a set of flags modeled on NASA's Threshold Crossing Event (TCE) pipeline:
+This is the part of the pipeline that changed the most during development, and the story of why it changed is worth telling in full — see [The vetting problem: NASA's approach vs. the right approach for this app](#the-vetting-problem-nasas-approach-vs-the-right-approach-for-this-app) below.
 
-| Flag | Test |
-|------|------|
-| TCE-01/02 | SDE and SNR above 7.1σ floor |
-| TCE-03 | Per-transit SNR > 1.5σ (signal should grow as √N transits) |
-| TCE-04 | Duration/period ratio < 0.1 (eclipsing binary discriminator) |
-| TCE-05/06 | ≥ 3 in-transit points, ≥ 70% of expected cadences covered |
-| TCE-07 | Depth > 3σ above noise floor |
-| TCE-08 | ≥ 3 complete transit windows in the baseline |
-| TCE-09 | No strong alias periods (P/2, P/3, 2P, 3P, etc.) |
-| TCE-13 | Depth < 3% (deeper signals are almost always grazing eclipsing binaries) |
-| TCE-14 | Not below Kepler's 30 ppm detection floor with marginal SNR |
-| TCE-15 | Depth ≥ 60 ppm for long-cadence (30-min) data |
+The current vetting uses a decision tree classifier trained on labeled BLS candidates from 248 Kepler targets. The tree takes BLS output features — SDE, SNR, transit duration, duty cycle, in-transit data points, expected transit windows, per-transit SNR, and transit point coverage ratio — and classifies each candidate as real or false positive. On the training data it achieves 97.7% precision and 92.9% recall (F1 = 0.952), eliminating 838 of 852 false positives while retaining 591 of 636 real planets.
+
+**Why not the NASA TCE framework?** See the section below. The short answer is: the TCE pipeline was designed for a different problem, with different failure modes, and optimizes for a metric that is exactly wrong for an app where results go directly to a user.
 
 ### 4. Multi-planet detection
 
-After finding the first planet, its transit windows are median-filled and BLS runs again on the residuals. This iterates up to a configurable maximum. If a candidate period matches one already found (within 5%), it is skipped but the search continues — the search terminates only when a reliability flag trips on a new candidate, indicating no more credible signals remain. Balancing the reliability thresholds across diverse systems is tricky: a threshold that correctly rejects noise for a hot Jupiter around a quiet star may reject a real small planet around a noisier one. Diagnostic mask plots are generated at each iteration and are viewable via expandable sections in the web app, or written to disk by passing `debug_dir` to `find_all_planets`.
+After finding the first planet, its transit windows are median-filled and BLS runs again on the residuals. This iterates up to a configurable maximum. If a candidate period matches one already found (within 5%), it is skipped but the search continues — the search terminates only when the decision tree rejects a new candidate, indicating no more credible signals remain. Diagnostic mask plots are generated at each iteration and are viewable via expandable sections in the web app, or written to disk by passing `debug_dir` to `find_all_planets`.
 
 ### 5. Transit model fitting — MCMC
 
@@ -86,19 +77,138 @@ Uncertainty propagation is done by sampling: stellar radius, mass, and temperatu
 
 ---
 
+## The vetting problem: NASA's approach vs. the right approach for this app
+
+This section is about the part of the pipeline that caused the most trouble, required the most iteration, and ultimately taught the most interesting lessons — both about astrophysics and about what it means to build something for actual users.
+
+### The false positive problem
+
+After the pipeline was working correctly for known single-planet systems, the first big test on a broader sample revealed a persistent and annoying problem: for roughly half of all Kepler targets, BLS would correctly find the real planet and then keep going — surfacing one, two, or three additional "detections" at long periods (typically 60–100 days) that were clearly not planets. The BLS power spectra for these candidates looked like pure noise: a flat wall of equally-tall spikes across the entire period range, with the "best period" just happening to be the tallest spike by a small margin. Signal Detection Efficiency of 8 or 9 — barely above the detection floor. Duration of half an hour, which is physically impossible for a real planet at those periods.
+
+These are Kepler quarterly roll artifacts — instrumental systematics caused by the spacecraft rotating 90 degrees every ~90 days to keep its solar panels oriented correctly, landing each star on a slightly different detector pixel each time. BLS finds them because they repeat, not because they are transits.
+
+The experience of seeing these in the app is immediately off-putting even if you know nothing about transit photometry. You look at the BLS power spectrum and something feels wrong. Everything is the same height. There is no isolated dominant peak. It does not look like a detection — it looks like the algorithm found the tallest spike in a histogram of noise. Which is exactly what happened.
+
+This is an experience-breaking false positive. Not just a wrong answer — an answer that makes the whole app feel unreliable.
+
+### NASA's solution: the TCE framework
+
+NASA's Kepler pipeline uses a set of threshold-based vetting rules called the Threshold Crossing Event (TCE) pipeline (Jenkins et al. 2010). The logic is as follows: a BLS detection must pass a battery of physical plausibility checks before it is flagged as a planet candidate worthy of follow-up. The checks are:
+
+| Flag | Test |
+|------|------|
+| TCE-01/02 | SDE and SNR above 7.1σ floor |
+| TCE-03 | Per-transit SNR > threshold (signal should grow as √N transits) |
+| TCE-04 | Duration/period ratio < 0.1 (eclipsing binary discriminator) |
+| TCE-05/06 | ≥ 3 in-transit points, ≥ 70% of expected cadences covered |
+| TCE-07 | Depth > 3σ above noise floor |
+| TCE-08 | ≥ 3 complete transit windows in the baseline |
+| TCE-09 | No strong alias periods (P/2, P/3, 2P, 3P, etc.) |
+| TCE-13 | Depth < 3% (deeper signals are almost always grazing eclipsing binaries) |
+| TCE-14 | Not below Kepler's 30 ppm detection floor with marginal SNR |
+| TCE-15 | Depth ≥ 60 ppm for long-cadence (30-min) data |
+
+This is a rigorous, well-motivated framework with decades of calibration behind it. The SDE floor of 7.1 comes from a detailed noise model of the full Kepler photometric pipeline. The depth checks are calibrated against known eclipsing binary populations. The alias rejection logic is designed to prevent harmonics of already-detected signals from generating spurious candidates.
+
+This was the first vetting approach implemented in this pipeline. And it helped — but not enough. Even with the full TCE battery applied, the false positive rate on a 248-target validation run was over 57%. The noise artifacts at long periods were clearing the checks because the TCE thresholds were not calibrated for this pipeline's specific output, and because some of the checks (alias rejection, per-transit SNR floors) were simultaneously cutting real planets and admitting fake ones. The TCE framework was implemented faithfully, tested, tuned, and ultimately found to be insufficient for the problem at hand.
+
+### Why NASA's approach is correct for NASA's problem
+
+It is worth being precise about this, because "the TCE checks did not work well here" is easily misread as a criticism of the NASA pipeline. It is not.
+
+NASA's TCE pipeline is designed to run on raw, unvetted Kepler photometry across 200,000 stars. Its job is to flag anything that might possibly be a planet for human follow-up. The design priority is **recall** — do not miss anything real. False positives are not a terminal failure; they get caught downstream by centroid analysis, spectroscopic confirmation, secondary eclipse checks, odd/even depth tests, community vetting, and ultimately by the requirement that a planet candidate receive peer-reviewed confirmation before appearing in a discovery paper. The TCE is stage one of a ten-stage process. Optimizing it for precision would mean missing real planets, which is the scientific sin.
+
+The TCE thresholds were also calibrated against NASA's full noise model, which includes the spacecraft's actual systematic noise budget, detector characteristics, pixel-level sensitivity maps, and data quality flags that this pipeline does not have access to. The SDE floor of 7.1 is not an arbitrary number — it is the value at which false alarm probability drops below a specific threshold under a specific noise model. Applied to this pipeline's BLS output, the number does not mean the same thing.
+
+### The sin is different for an app
+
+The product requirement here is almost exactly inverted from NASA's. This is a fun, interactive app showing people how exoplanet detection works using real Kepler data. The user does not have a downstream vetting pipeline. They do not have spectroscopic follow-up resources. They are looking at the output of this pipeline directly, and if the pipeline shows them an 81-day "planet" with a BLS power spectrum that looks like a histogram of static, their experience of the whole thing is degraded — regardless of whether they know enough astrophysics to name the failure mode.
+
+For this app, showing a false positive is not just a wrong answer. It is an experience-breaking wrong answer. The sin is precision, not recall. Missing a real small planet that was hard to detect is acceptable — nobody looking at the app for Kepler-55 was expecting all five sub-Neptunes to be findable in a few seconds. Showing an obvious noise artifact as a discovery is not acceptable.
+
+### The empirical approach
+
+Rather than continuing to tune the TCE thresholds by hand, an empirical approach was taken. The pipeline was run in permissive mode — six sequential BLS passes per target, maximum detection sensitivity — on Kepler targets 1 through 250. This took approximately 36 hours of continuous computation on a 2017 MacBook Pro and produced 1,488 labeled BLS candidates: 636 real planets (matched against NASA's published ephemerides) and 852 false positives.
+
+Those 1,488 candidates were then used to train a decision tree classifier (scikit-learn, max depth 4, balanced class weights) on the BLS output features. The tree was evaluated on the same data it was trained on — this is in-sample performance, not cross-validated generalization — and the results were compared against both the TCE-only approach and a two-stage pipeline that combined TCE pre-filtering with a decision tree second stage.
+
+### Results
+
+**Feature distributions (real planets vs. false positives):**
+
+| Feature | Real median | Real p25–p75 | FP median | FP p25–p75 |
+|---------|-------------|--------------|-----------|------------|
+| SDE | 68.32 | 46.0–84.2 | 8.05 | 7.3–9.8 |
+| SNR | 33.69 | 24.8–50.2 | 12.77 | 9.5–19.9 |
+| Transit depth (ppm) | 742.56 | 421.9–1155.3 | 468.38 | 278.2–797.7 |
+| Depth uncertainty (ppm) | 21.00 | 11.3–34.0 | 32.12 | 16.6–66.6 |
+| In-transit data points | 472.50 | 260.2–798.8 | 99.50 | 44.0–307.2 |
+| Expected transit windows | 96.61 | 46.2–183.3 | 21.70 | 13.4–79.2 |
+| Per-transit SNR | 3.54 | 2.6–5.3 | 2.19 | 1.5–3.4 |
+| Transit duration (hours) | 2.69 | 2.1–4.4 | 1.30 | 0.6–2.7 |
+
+The SDE separation is striking. Real planets have a median SDE of 68 — the BLS peak stands nearly 70 standard deviations above the noise floor. False positives cluster just above the detection floor at SDE 8. These populations barely overlap. This single feature captures most of what is knowable from BLS output alone, and it also explains why the experience of seeing a false positive in the app feels wrong even without knowing the formalism: a real transit produces a narrow, isolated, dominant spike in the BLS power spectrum. Noise produces a flat forest of equally-tall spikes and the "best period" is just the tallest one by a small margin.
+
+**Single-feature threshold sweep (95% recall floor):**
+
+| Feature | Threshold | Recall | Precision | F1 | FP cut |
+|---------|-----------|--------|-----------|-----|--------|
+| SDE ≥ | 9.1 | 95.1% | 69.1% | 0.801 | 582/852 |
+| SNR ≥ | 14.3 | 95.1% | 62.8% | 0.756 | 493/852 |
+| In-transit points ≥ | 101 | 95.3% | 59.1% | 0.730 | 433/852 |
+| Expected windows ≥ | 19.3 | 95.3% | 57.1% | 0.714 | 396/852 |
+| Duration ≥ | 1.0h | 96.5% | 52.3% | 0.679 | 293/852 |
+
+**Decision tree (depth 4, trained on all 1,488 candidates):**
+
+```
+recall=92.9%  precision=97.7%  F1=0.952  FP cut=838/852  real kept=591/636
+```
+
+The tree eliminates 838 of 852 false positives while retaining 591 of 636 real planets. Feature importances confirm the SDE dominance: SDE accounts for 92.2% of the information gain across all splits. The remaining features (duty cycle, coverage ratio, in-transit points, duration, expected windows) collectively account for the remaining 7.8%.
+
+The root split is SDE ≤ 19.17. Below that threshold, the tree uses a combination of in-transit data points, coverage ratio, duty cycle, and per-transit SNR to handle the harder cases where a real planet has a modest BLS peak. Above SDE 19.17, essentially everything is real — the tree uses minor geometry checks to clean up a small number of edge cases. The empirically determined threshold of 19.17 is notably much higher than the NASA TCE floor of 7.1, which makes sense: the TCE floor is set to catch everything that might be real, while the tree's split is set where the two populations actually stop overlapping on this pipeline's specific output.
+
+**Was a two-stage pipeline (TCE pre-filter + decision tree) better?**
+
+No. The tree was also tested in a two-stage configuration where TCE hard cuts eliminated candidates before the tree ran. All three TCE leniency levels produced slightly worse F1 than the tree alone:
+
+| Config | Recall | Precision | F1 | FP cut | Real kept |
+|--------|--------|-----------|-----|--------|-----------|
+| Tree only (baseline) | 92.9% | 97.7% | 0.952 | 838/852 | 591/636 |
+| TCE LOOSE → tree | 92.0% | 98.5% | 0.951 | 843/852 | 585/636 |
+| TCE MEDIUM → tree | 91.5% | 99.0% | 0.951 | 846/852 | 582/636 |
+| TCE TIGHT → tree | 82.2% | 99.6% | 0.901 | 850/852 | 523/636 |
+
+The reason the two-stage approach does not help is that the tree already learned the TCE-relevant boundaries from the data. The root split at SDE=19.17 is functionally doing what TCE-01 attempts to do, but calibrated to the empirical distribution of this pipeline's output rather than to a theoretical noise model. Adding an explicit TCE pre-filter on top is redundant work — and any real planets the TCE rejects before the tree sees them are gone permanently. The tree alone is both simpler and better.
+
+### What this means for generalization
+
+The decision tree was fit and evaluated on the same 1,488 candidates from the same 248 targets. This is in-sample performance. The 97.7% precision figure is optimistic and will not fully generalize to unseen targets, noisier stars, or different instruments. TESS, for example, has a different systematic noise profile than Kepler, different cadence options, and much shorter per-sector baselines — a tree trained on Kepler would need to be retrained from scratch to work there.
+
+This is fine. The explicit goal was to make the app work well and look credible for Kepler targets 1–250. That goal has been achieved. The pipeline is not being submitted to the Astrophysical Journal. What this exercise did produce — beyond a better app — is a clear empirical characterization of what information BLS output actually carries about candidate reliability on this specific instrument and pipeline. Almost everything useful is in SDE. A small amount is in geometry. Virtually nothing is in the features that TCE checks most carefully. Whether that finding generalizes is an interesting question for someone who wants to spend another 36 hours of laptop time.
+
+---
+
 ## What I learned
 
 **Sliding window detrending corrupts wide transits without masking.**
 Any local smoother — Savitzky-Golay, biweight, or otherwise — that is blind to the transit signal will partially fill it in. The smoother sees a dip and pulls the local trend downward to compensate, attenuating the depth. The effect is worst for long-duration transits whose width approaches the filter window. The fix is iterative: detect with a rough detrend, mask the transit windows, redetrend from pure stellar continuum. Pass 2 in this pipeline implements exactly that — the biweight never sees in-transit flux when estimating the trend the MCMC fits against.
 
 **Tight MCMC posteriors are not evidence of a correct answer.**
-A corrupted likelihood surface converges confidently to the wrong place. If the detrending partially filled a transit before MCMC ran, the sampler faithfully finds the best fit to the altered data, and there is nothing in the posterior itself that signals the problem. The diagnostic is to evaluate the log-likelihood at the known-truth parameters and compare it to the converged value. If truth scores worse than the sampler's answer, the data was altered, not the sampler's fault.
+A corrupted likelihood surface converges confidently to the wrong place. If the detrending partially filled a transit before MCMC ran, the sampler faithfully finds the best fit to the altered data, and there is nothing in the posterior itself that signals the problem. The diagnostic is to evaluate the log-likelihood at the known-truth parameters and compare it to the converged value. If truth scores worse than the sampler's answer, the data was altered — not the sampler's fault.
 
 **batman with quadratic limb darkening cannot reproduce published depths for some targets.**
 Kepler-7b is the clearest example: the original discovery paper used a more complex limb darkening model, and the quadratic approximation cannot reproduce that transit shape exactly. The mismatch is invisible from the posterior — the sampler converges, uncertainties look reasonable, the answer is just wrong. The only way to detect it is to inject known parameters and check whether they are recovered, which is a different kind of test than just running the pipeline and looking at the output.
 
 **Model mismatch is undetectable without injection tests.**
 This is the general version of the above. If the model is wrong in a way that still allows convergence, there is no signal of failure in the posterior. Injection-recovery (simulate a transit with known parameters, run the full pipeline, check if you get them back) is the correct test. It separates "the sampler worked" from "the model was right."
+
+**SDE is almost all of the information.**
+The BLS Signal Detection Efficiency accounts for 92% of the decision tree's information gain in separating real planets from false positives. Real Kepler planet detections have median SDE around 68. False positives cluster at SDE 8. The TCE threshold of SDE > 7.1 catches almost nothing because it was designed as a recall-maximizing detection floor, not a precision-maximizing discriminator. The empirically calibrated split from the decision tree is SDE > 19.17 — more than twice as high, and the place where the two populations actually stop overlapping in this pipeline.
+
+**The right metric depends on the product, not the science.**
+NASA optimizes for recall because missing a real planet is the scientific failure mode. False positives get vetted downstream by humans with telescopes. An interactive app has no downstream vetting — it shows results directly to users, and a false positive that looks obviously wrong is an experience-breaking failure. The sin is different. Optimizing for precision, at the cost of missing some hard detections, produces a better product even if it would make a worse survey instrument.
 
 ---
 
@@ -113,7 +223,7 @@ pipeline/
 
 detection/
   bls.py               — BLS period search, BLSResult dataclass
-  result_evaluation.py — TCE-style reliability vetting
+  result_evaluation.py — decision tree reliability vetting
   multi_planet.py      — iterative multi-planet search, transit masking,
                          Pass 2 redetrend; returns (planets, mask_data, refined_lc)
 
@@ -132,6 +242,11 @@ viz/
 
 app/
   steps/               — Streamlit UI (step0–step4)
+
+tests/
+  threshold_optimization/
+    fit_thresholds.py         — grid search + decision tree fitting on labeled candidates
+    candidates_*.csv          — labeled BLS candidates from permissive validation runs
 ```
 
 ---
@@ -149,7 +264,8 @@ plotly            — interactive visualizations
 streamlit         — web app
 requests          — NASA Exoplanet Archive TAP queries
 tqdm              — progress bars in CLI pipeline runs
-astroquery        — NASA Exoplanet Archive queries (used in test scripts for truth data comparison)
+astroquery        — NASA Exoplanet Archive queries (used in test scripts)
+scikit-learn      — decision tree classifier for reliability vetting
 ```
 
 ---
@@ -186,25 +302,14 @@ The app is designed to run within Streamlit Community Cloud's constraints (1 GB 
 
 ## Known limitations and open problems
 
-The pipeline and app work well across most Kepler targets, but edge cases continue to surface as more systems are tested. It's a work in progress toward making the detection and characterization more robust across the full diversity of the Kepler catalog. The known challenges are:
-
 **Transit masking in multi-planet systems**
 After masking a detected planet's transits, BLS occasionally re-detects the same period on the next iteration, indicating the mask didn't fully suppress the signal. The mask window is currently 3× the BLS-estimated duration, but BLS duration estimates can underestimate true duration, especially for grazing or long-duration transits.
 
 **Reliability threshold generalizability**
-The TCE-style vetting thresholds were tuned against the Kepler pipeline's assumptions (quiet FGK stars, long-cadence photometry, ~4-year baselines). They don't generalize cleanly to:
-- Small planets with shallow depths where per-transit SNR is marginal
-- Short-baseline TESS observations where only 2–3 transit windows exist
-- Active stars with coronal variability that inflates the noise floor
-
-**False positives at long periods**
-BLS finds spurious signals at periods longer than ~30 days, particularly in systems where the real planet has a short period. Once the dominant signal is masked, the residuals contain low-level correlated noise (stellar variability, detrending artifacts, and inter-quarter systematics) that can look like a weak periodic signal at long periods. These candidates pass reliability vetting because the TCE thresholds were calibrated on the full noise distribution, not on residuals that have already had the brightest signal removed. The result is a pipeline that reliably finds the first planet and then over-detects in the tail. Empirical threshold tuning (see What I learned) largely solves this: the false positive population has systematically lower SDE than real detections, so raising the SDE floor eliminates most of them without touching real planets.
+The decision tree was fit on labeled candidates from Kepler targets 1–250 and evaluated on the same data (in-sample). It will not generalize without retraining to different instruments (TESS has a very different systematic noise profile), short-baseline observations with few transit windows, or active stars where the noise floor is elevated. For the intended use case — Kepler 1–250 in the app — this is fine.
 
 **Radius underestimation for large planets**
 Hot Jupiters and other large planets (depth > ~1%) have transits wide enough that even Pass 2 detrending leaves a small residual suppression — the biweight window near the transit edges still sees some in-transit continuum. The MCMC then fits a slightly shallower transit than the true depth, producing a systematically underestimated radius. The effect is small for Earth-to-Neptune-sized planets but becomes meaningful above ~10 R⊕.
-
-**Alias rejection is too aggressive**
-TCE-09 flags candidates whose period is a simple harmonic of a stronger signal in the BLS spectrum (P/2, P/3, 2P, 3P). This correctly rejects many echoes of already-detected planets, but it also rejects real planets whose orbital period happens to fall near a harmonic of a noise peak or a stellar rotation period. 
 
 **Transit timing variations (TTVs)**
 Planets in or near mean-motion resonance have transit times that shift by minutes to hours from orbit to orbit due to gravitational interactions. BLS assumes perfectly periodic transits and smears out TTV signals when phase-folding, reducing detection SNR. Handling TTVs properly requires a separate dynamical modeling step not currently implemented.
@@ -213,14 +318,13 @@ Planets in or near mean-motion resonance have transit times that shift by minute
 Starspots, flares, and coronal mass ejections all produce flux variations that can alias into the BLS period grid or corrupt the transit depth estimate. The biweight filter removes slow trends but is not designed to handle short-duration flares or rotationally-modulated spot patterns.
 
 **Eclipsing binary contamination**
-Eclipsing binaries are a major source of false positives in transit surveys. The pipeline catches the most blatant cases via TCE-04 (duty cycle) and TCE-13 (depth > 3%), but anything more subtle (such as odd/even depth alternation, secondary eclipses at phase 0.5, or background EBs blended inside the photometric aperture) requires centroid motion analysis, radial velocity follow-up, or multi-wavelength photometry to rule out. If the target is actually an eclipsing binary that passes the coarse cuts, the pipeline will fit it and give you numbers. The numbers will be wrong.
+Eclipsing binaries are a major source of false positives in transit surveys. The decision tree catches most of the obvious cases via the duty cycle and depth features it learned to use, but anything subtle — odd/even depth alternation, secondary eclipses at phase 0.5, or background EBs blended inside the photometric aperture — requires centroid motion analysis, radial velocity follow-up, or multi-wavelength photometry to rule out. If the target is actually an eclipsing binary that passes the tree, the pipeline will fit it and give you numbers. The numbers will be wrong.
 
 **Uncertainty underestimation**
 The detrended light curve is treated as fixed truth by the transit model fitting. Any uncertainty in where the stellar trend was — whether the filter slightly suppressed a transit or misidentified a stellar oscillation as continuum — does not propagate into the parameter posteriors. The reported error bars represent photon noise only. Fully propagating detrending uncertainty requires simultaneous GP + transit modeling, which is computationally prohibitive for real-time use.
 
 **Why real planet discoveries get their own papers**
-
-The above list is not exhaustive. Real planet confirmation involves independent TCE vetting by multiple reviewers, centroid motion analysis to rule out background EBs, spectroscopic stellar characterization, dynamical modeling for multi-planet systems, and statistical false positive probability calculations. This pipeline runs the full detection and characterization sequence — period search, reliability vetting, transit model fitting, and physical parameter derivation — and produces results consistent with known systems. What it does not do is confirm planets: that requires the follow-up observations and analysis that real discovery papers are built around.
+The above list is not exhaustive. Real planet confirmation involves independent TCE vetting by multiple reviewers, centroid motion analysis to rule out background EBs, spectroscopic stellar characterization, dynamical modeling for multi-planet systems, and statistical false positive probability calculations. This pipeline runs the full detection and characterization sequence and produces results consistent with known systems. What it does not do is confirm planets: that requires the follow-up observations and analysis that real discovery papers are built around.
 
 ---
 
