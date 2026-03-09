@@ -6,7 +6,7 @@ import streamlit as st
 EXAMPLE_TARGETS = [
     ("Kepler-5",  "Single planet system and one of the first five planets discovered by the Kepler spacecraft"),
     ("Kepler-183", "A two planet system discovered in 2014 in the constellation Cygnus"),
-    ("Kepler-203", "A very similar star to our Sun with three tightly packed planets"),
+    ("Kepler-18", "A three planet system where two outer planets are in a near-perfect 2:1 resonance"),
     ("Kepler-215", "A complex four planet system that stress-tests multi-planet masking and detection"),
     ("Kepler-20",  "A five planet system where the planet sizes bizarrely alternate between large and small"),
 ]
@@ -66,6 +66,7 @@ def render():
                 _reset_results()
                 st.session_state.prefill_target = name
                 st.session_state.target = name
+                st.session_state.step = 1
                 st.rerun()
 
     st.markdown("<div style='margin: 1.5rem 0;'></div>", unsafe_allow_html=True)
@@ -77,6 +78,7 @@ def render():
         else:
             _reset_results()
             st.session_state.target = t
+            st.session_state.step = 1
             st.rerun()
 
     st.markdown("""

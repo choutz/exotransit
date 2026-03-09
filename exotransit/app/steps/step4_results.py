@@ -198,10 +198,3 @@ pre-filter is a reasonable and widely-used approximation.
 """)
 
     st.markdown("<div style='margin: 2rem 0;'></div>", unsafe_allow_html=True)
-
-    st.markdown("<div style='margin: 2rem 0;'></div>", unsafe_allow_html=True)
-
-    if st.button("Analyze another star →", type="primary"):
-        for k in list(st.session_state.keys()):
-            del st.session_state[k]
-        st.rerun()

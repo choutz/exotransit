@@ -505,13 +505,111 @@ def distribution_summary(df, y):
         print(f"  {color}{label:<28}  {r_med:>12.2f}  {r_q:>16}  {f_med:>12.2f}  {f_q:>16}{RESET}")
 
 
+# ── Per-target validation CSV ──────────────────────────────────────────────────
+
+def _parse_values(val) -> list[float]:
+    if isinstance(val, (int, float)):
+        return [float(val)]
+    return [float(x.strip()) for x in str(val).split(",")]
+
+
+def write_per_target_csv(clf, available: list[str], df: pd.DataFrame,
+                         summary_path: Path, out_path: Path):
+    """
+    Apply the fitted tree to all candidates, group by target, compare to
+    truth periods from summary.csv, and write a per-target result CSV.
+    """
+    try:
+        summary = pd.read_csv(summary_path)
+        summary["periods_list"] = summary["periods_d"].apply(_parse_values)
+        truth_map = {
+            f"Kepler-{int(row['Kepler_#'])}": row["periods_list"]
+            for _, row in summary.iterrows()
+        }
+    except Exception as e:
+        print(f"  {YELLOW}Could not load summary.csv for per-target CSV: {e}{RESET}")
+        return
+
+    X = df[available].fillna(0).values
+    df = df.copy()
+    df["tree_pred"] = clf.predict(X)
+
+    rows = []
+    for target, group in df.groupby("target"):
+        truth_periods = truth_map.get(target, [])
+        n_truth = len(truth_periods)
+
+        detected_periods = sorted(
+            group.loc[group["tree_pred"] == 1, "period_d"].tolist()
+        )
+        n_detected = len(detected_periods)
+
+        # Match detected → truth (5% tolerance, greedy)
+        used_det = set()
+        correct_pairs = []   # (truth_p, det_p)
+        missed        = []   # truth_p with no match
+        for tp in sorted(truth_periods):
+            best_idx, best_err = None, float("inf")
+            for j, dp in enumerate(detected_periods):
+                if j in used_det:
+                    continue
+                err = abs(dp - tp) / tp
+                if err < 0.05 and err < best_err:
+                    best_idx, best_err = j, err
+            if best_idx is not None:
+                used_det.add(best_idx)
+                correct_pairs.append((tp, detected_periods[best_idx]))
+            else:
+                missed.append(tp)
+
+        false_positives = [
+            dp for j, dp in enumerate(detected_periods) if j not in used_det
+        ]
+
+        n_correct = len(correct_pairs)
+        n_missed  = len(missed)
+        n_fp      = len(false_positives)
+
+        if n_fp > 0:
+            verdict = "FALSE_POSITIVE"
+        elif n_missed > 0:
+            verdict = "MISSED" if n_correct == 0 else "PARTIAL"
+        elif n_correct == n_truth and n_truth > 0:
+            verdict = "PASS"
+        else:
+            verdict = "NO_TRUTH"
+
+        rows.append({
+            "target":            target,
+            "n_planets_truth":   n_truth,
+            "n_planets_detected": n_detected,
+            "periods_truth":     ",".join(f"{p:.4f}" for p in sorted(truth_periods)),
+            "periods_detected":  ",".join(f"{p:.4f}" for p in detected_periods),
+            "n_correct":         n_correct,
+            "n_missed":          n_missed,
+            "n_false_positive":  n_fp,
+            "verdict":           verdict,
+        })
+
+    out_df = pd.DataFrame(rows).sort_values("target")
+    out_df.to_csv(out_path, index=False)
+
+    n = len(out_df)
+    n_pass = (out_df["verdict"] == "PASS").sum()
+    n_fp   = (out_df["verdict"] == "FALSE_POSITIVE").sum()
+    n_miss = out_df["verdict"].isin(["MISSED", "PARTIAL"]).sum()
+    print(f"\n  Per-target CSV: {out_path}")
+    print(f"  {n} targets  |  PASS: {n_pass} ({n_pass/n*100:.0f}%)  "
+          f"FALSE_POSITIVE: {n_fp}  MISSED/PARTIAL: {n_miss}")
+
+
 # ── Entry point ────────────────────────────────────────────────────────────────
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("csv", nargs="?", help="CSV file (default: latest candidates_*.csv)")
-    parser.add_argument("--recall-floor", type=float, default=0.99,
-                        help="Minimum recall required (default: 0.99)")
+    parser.add_argument("--recall-floor", type=float, default=0.95,
+                        help="Minimum recall required (default: 0.95)")
     parser.add_argument("--depth", type=int, default=4,
                         help="Max depth for decision tree (default: 4)")
     parser.add_argument("--no-tree", action="store_true",
@@ -561,8 +659,12 @@ def main():
             print(f"\n{CYAN}{'='*72}")
             print(f"  DECISION TREE  (max_depth={args.depth}, recall floor: {args.recall_floor:.0%})")
             print(f"{'='*72}{RESET}")
-            fit_decision_tree(df, y, args.recall_floor, max_depth=args.depth,
-                              label="single-stage, all candidates")
+            clf, available = fit_decision_tree(df, y, args.recall_floor, max_depth=args.depth,
+                                               label="single-stage, all candidates")
+            if clf is not None:
+                summary_path = Path(__file__).parent.parent / "summary.csv"
+                out_csv = csv_path.parent / f"per_target_{csv_path.stem}.csv"
+                write_per_target_csv(clf, available, df, summary_path, out_csv)
 
         print(f"\n{CYAN}{'='*72}")
         print(f"  TOP SINGLE-FEATURE THRESHOLDS")

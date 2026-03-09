@@ -190,7 +190,7 @@ def fetch_light_curve(
             # Normalize per quarter to remove inter-quarter flux jumps.
             # No detrending here — the biweight runs once on the full stitched
             # baseline, avoiding quarter-boundary edge effects.
-            lc = lc.remove_nans().remove_outliers(sigma=5.0)
+            lc = lc.remove_nans().remove_outliers(sigma_upper=5.0, sigma_lower=np.inf)
             lc = lc.normalize()
             light_curves.append(lc)
 

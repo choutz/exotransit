@@ -48,6 +48,7 @@ h1, h2, h3 {
     font-family: 'Instrument Serif', serif;
     font-weight: 400;
     letter-spacing: -0.02em;
+    color: #f1f5f9 !important;
 }
 
 /* Step headers */
@@ -152,6 +153,8 @@ h1, h2, h3 {
     letter-spacing: 0.05em !important;
     padding: 0.65rem 2rem !important;
     transition: all 0.2s !important;
+    white-space: nowrap !important;
+    width: auto !important;
 }
 
 .stButton > button:hover {
@@ -172,8 +175,14 @@ hr { border-color: rgba(148, 163, 184, 0.1) !important; }
 .streamlit-expanderHeader {
     font-family: 'DM Mono', monospace !important;
     font-size: 0.8rem !important;
-    color: #94a3b8 !important;
+    color: #e2e8f0 !important;
     letter-spacing: 0.05em !important;
+}
+
+/* Spinner text */
+[data-testid="stSpinner"] p,
+[data-testid="stSpinner"] span {
+    color: #e2e8f0 !important;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -182,6 +191,7 @@ hr { border-color: rgba(148, 163, 184, 0.1) !important; }
 def _init_state():
     defaults = dict(
         conf=MEDIUM,
+        step=0,
         target=None,
         lc=None,
         stellar=None,
@@ -206,8 +216,6 @@ from exotransit.app.steps import (
     step3_fitting,
     step4_results,
 )
-
-_DIVIDER = "<hr style='border-color: rgba(148,163,184,0.1); margin: 2.5rem 0;'>"
 
 # ── Header ───────────────────────────────────────────────────────────────────
 st.markdown("""
@@ -238,7 +246,52 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# ── Error display ────────────────────────────────────────────────────────────
+# ── Step indicator ────────────────────────────────────────────────────────────
+_STEP_LABELS = ["Search", "Raw Data", "Detection", "MCMC Fitting", "Results"]
+
+def _render_step_indicator(current: int):
+    parts = []
+    for i, label in enumerate(_STEP_LABELS):
+        if i == 0:
+            continue  # search step has no indicator slot
+        idx = i  # steps 1–4
+        if idx < current:
+            color = "#4ade80"   # done — green
+            weight = "400"
+        elif idx == current:
+            color = "#38bdf8"   # active — blue
+            weight = "500"
+        else:
+            color = "#475569"   # future — dim
+            weight = "400"
+        parts.append(
+            f'<span style="color:{color}; font-weight:{weight};">'
+            f'{idx}. {label}</span>'
+        )
+    html = ' <span style="color:#334155; margin:0 0.4rem;">·</span> '.join(parts)
+    st.markdown(
+        f'<div style="text-align:center; font-family:\'DM Mono\',monospace; '
+        f'font-size:0.72rem; letter-spacing:0.08em; margin-bottom:1.5rem;">'
+        f'{html}</div>',
+        unsafe_allow_html=True,
+    )
+
+# ── Navigation buttons ────────────────────────────────────────────────────────
+def _nav_buttons(prev_step: int | None, next_step: int | None, next_label: str = "Continue →"):
+    st.markdown("<div style='margin-top: 2.5rem;'></div>", unsafe_allow_html=True)
+    cols = st.columns([1, 3, 1])
+    if prev_step is not None:
+        with cols[0]:
+            if st.button("← Back", key=f"back_{prev_step}"):
+                st.session_state.step = prev_step
+                st.rerun()
+    if next_step is not None:
+        with cols[2]:
+            if st.button(next_label, key=f"next_{next_step}", type="primary"):
+                st.session_state.step = next_step
+                st.rerun()
+
+# ── Error display ─────────────────────────────────────────────────────────────
 if st.session_state.error:
     st.error(st.session_state.error)
     if st.button("← Start over"):
@@ -246,22 +299,42 @@ if st.session_state.error:
             del st.session_state[k]
         st.rerun()
 
-# ── Single-page pipeline ─────────────────────────────────────────────────────
+# ── Step-by-step pipeline ─────────────────────────────────────────────────────
 else:
-    step0_search.render()
+    current = st.session_state.step
 
-    if st.session_state.target:
-        st.markdown(_DIVIDER, unsafe_allow_html=True)
+    if current == 0:
+        step0_search.render()
+
+    elif current == 1:
+        _render_step_indicator(1)
         step1_data.render()
+        if st.session_state.lc is not None and st.session_state.stellar is not None:
+            _nav_buttons(prev_step=0, next_step=2, next_label="Step 2: Transit Detection →")
 
-    if st.session_state.lc is not None:
-        st.markdown(_DIVIDER, unsafe_allow_html=True)
+    elif current == 2:
+        _render_step_indicator(2)
         step2_detection.render()
+        if st.session_state.all_bls is not None:
+            _nav_buttons(prev_step=1, next_step=3, next_label="Step 3: MCMC Fitting →")
 
-    if st.session_state.all_bls is not None:
-        st.markdown(_DIVIDER, unsafe_allow_html=True)
+    elif current == 3:
+        _render_step_indicator(3)
         step3_fitting.render()
+        if st.session_state.all_mcmc is not None:
+            _nav_buttons(prev_step=2, next_step=4, next_label="Step 4: Results →")
 
-    if st.session_state.all_mcmc is not None:
-        st.markdown(_DIVIDER, unsafe_allow_html=True)
+    elif current == 4:
+        _render_step_indicator(4)
         step4_results.render()
+        st.markdown("<div style='margin-top: 2.5rem;'></div>", unsafe_allow_html=True)
+        col_back, col_mid, col_new = st.columns([1, 3, 1])
+        with col_back:
+            if st.button("← Back", key="back_step4"):
+                st.session_state.step = 3
+                st.rerun()
+        with col_new:
+            if st.button("New star →", key="new_star", type="primary"):
+                for k in list(st.session_state.keys()):
+                    del st.session_state[k]
+                st.rerun()

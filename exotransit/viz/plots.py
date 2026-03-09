@@ -660,17 +660,23 @@ def plot_transit_mask(
         horizontal_spacing=0.10,
     )
 
-    # Panel 1: full light curve
-    fig.add_trace(go.Scattergl(
-        x=time[kept], y=flux[kept],
+    # Panel 1: full light curve — downsample kept points to keep SVG snappy
+    MAX_PTS = 4000
+    kept_idx = np.where(kept)[0]
+    if len(kept_idx) > MAX_PTS:
+        step_ds = max(1, len(kept_idx) // MAX_PTS)
+        kept_idx = kept_idx[::step_ds]
+
+    fig.add_trace(go.Scatter(
+        x=time[kept_idx].tolist(), y=flux[kept_idx].tolist(),
         mode="markers",
         marker=dict(size=1.5, color="#94a3b8", opacity=0.4),
         name=f"Kept ({n_kept:,})",
         showlegend=True,
     ), row=1, col=1)
 
-    fig.add_trace(go.Scattergl(
-        x=time[mask], y=flux[mask],
+    fig.add_trace(go.Scatter(
+        x=time[mask].tolist(), y=flux[mask].tolist(),
         mode="markers",
         marker=dict(size=4, color="#f43f5e", opacity=0.85),
         name=f"Masked ({n_masked:,})",
@@ -698,15 +704,15 @@ def plot_transit_mask(
         hoverinfo="skip",
     ), row=1, col=2)
 
-    fig.add_trace(go.Scattergl(
-        x=phase_days[kept], y=flux[kept],
+    fig.add_trace(go.Scatter(
+        x=phase_days[kept].tolist(), y=flux[kept].tolist(),
         mode="markers",
         marker=dict(size=2, color="#94a3b8", opacity=0.3),
         showlegend=False,
     ), row=1, col=2)
 
-    fig.add_trace(go.Scattergl(
-        x=phase_days[mask], y=flux[mask],
+    fig.add_trace(go.Scatter(
+        x=phase_days[mask].tolist(), y=flux[mask].tolist(),
         mode="markers",
         marker=dict(size=5, color="#f43f5e", opacity=0.85),
         showlegend=False,
