@@ -7,8 +7,8 @@ The full pipeline was tested on five Kepler systems spanning one to five confirm
 | Planet | True R (R⊕) | Pipeline R (R⊕) | Error | Notes |
 |--------|------------|----------------|-------|-------|
 | Kepler-5 b | 14.92 | 15.37 | +3.0% | |
-| Kepler-183 c | 2.90 | 2.47 | −14.9% | Archive R★ −20% wrong |
-| Kepler-183 b | 2.76 | 2.12 | −23.2% | Archive R★ −20% wrong |
+| Kepler-183 c | 2.90 | 2.47 | −14.9% | |
+| Kepler-183 b | 2.76 | 2.12 | −23.2% | |
 | Kepler-18 c | 4.91 | 5.41 | +10.2% | |
 | Kepler-18 d | 5.94 | 6.60 | +11.1% | |
 | Kepler-18 b | 2.03 | 2.15 | +6.1% | |
