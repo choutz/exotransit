@@ -253,14 +253,14 @@ def plot_phase_fold(bls: BLSResult, mcmc: MCMCResult | None = None, zoom_factor:
         bin_flux.append(float(np.mean(f[mask])))
         bin_err.append(float(np.std(f[mask]) / np.sqrt(mask.sum())))
 
-    fig.add_trace(go.Scatter(
-        x=bin_centers, y=bin_flux,
-        error_y=dict(array=bin_err, color=COLORS["clean"], thickness=1.5),
-        mode="markers",
-        marker=dict(size=7, color=COLORS["clean"], line=dict(width=1, color="#0f172a")),
-        name="Binned",
-        showlegend=True,
-    ), row=1, col=1)
+    # fig.add_trace(go.Scatter(
+    #     x=bin_centers, y=bin_flux,
+    #     error_y=dict(array=bin_err, color=COLORS["clean"], thickness=1.5),
+    #     mode="markers",
+    #     marker=dict(size=7, color=COLORS["clean"], line=dict(width=1, color="#0f172a")),
+    #     name="Binned",
+    #     showlegend=True,
+    # ), row=1, col=1)
 
     if has_model:
         from exotransit.mcmc.helpers import _transit_model
@@ -399,7 +399,7 @@ def plot_mcmc_spaghetti(bls: BLSResult, mcmc: MCMCResult, n_samples: int = 100, 
     fig.update_yaxes(title_text="Normalized Flux")
     fig.update_layout(
         **LAYOUT_DEFAULTS,
-        title=dict(text=f"MCMC Posterior — {n_samples} samples", x=0.5, xanchor="center", font=dict(color="#e2e8f0")),
+        title=dict(text=f"MCMC Posterior Spaghetti — {n_samples} samples", x=0.5, xanchor="center", font=dict(color="#e2e8f0")),
         height=400,
     )
 

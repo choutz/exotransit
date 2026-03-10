@@ -29,7 +29,7 @@ def render():
 
     st.markdown("""
     <div class="explain-box">
-        <strong>Box Least Squares (BLS)</strong> scans hundreds of thousands of orbital period
+        <strong>Box Least Squares (BLS)</strong> scans tens of thousands of orbital period
         candidates. At each period, it phase-folds the light curve, stacking every
         orbit on top of the last, and scores how well a flat-bottomed rectangular dip fits
         the combined signal. A spike in the power spectrum flags a real repeating transit.<br><br>
@@ -77,10 +77,10 @@ a curve of "how good was the box fit at this period." A sharp, isolated spike me
 one period dramatically outperforms all others, the hallmark of a real transit signal.
 
 **SDE** (Signal Detection Efficiency) measures how many standard deviations the peak
-rises above the surrounding noise floor. The Kepler pipeline requires SDE > 7 for a
+rises above the surrounding noise floor. NASA's Kepler pipeline requires SDE > 7 for a
 credible detection; below that, noise fluctuations can mimic the same spike by chance.
 
-**SNR** is independent: transit depth divided by its measurement uncertainty. A deep
+**SNR** (Signal-to-Noise Ratio) is independent: transit depth divided by its measurement uncertainty. A deep
 transit in noisy data can have high SDE but low SNR, and vice versa.
 """)
 
@@ -199,8 +199,7 @@ was previously hidden beneath a stronger neighbor.
                         color: #38bdf8; margin-bottom: 0.3rem;">SDE: Signal Detection Efficiency</div>
             <div style="font-size: 0.8rem; color: #cbd5e1; line-height: 1.5;">
                 How many standard deviations the peak in the BLS power spectrum stands above
-                the noise floor. SDE &gt; 7 is the Kepler pipeline's minimum threshold for a
-                credible detection.
+                the noise floor. 
             </div>
         </div>
         <div style="background: rgba(15,23,42,0.8); border: 1px solid rgba(148,163,184,0.12);

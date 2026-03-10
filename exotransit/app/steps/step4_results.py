@@ -175,7 +175,7 @@ brightness measurements).
 **What is not captured:** the detrended flux is treated as fixed truth.
 The biweight filter removed the stellar variability trend before MCMC ever ran.
 Any uncertainty in *where the trend was*, including whether the filter slightly
-suppressed a transit, or misidentified a stellar oscillation as continuum —
+suppressed a transit, or misidentified a stellar oscillation as continuum,
 does not appear in the posterior. The reported error bars are therefore a lower
 bound on the true parameter uncertainty.
 

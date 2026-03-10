@@ -86,8 +86,8 @@ known measurement noise:
         )
         st.markdown(r"""
 $d_i$ is the measured flux, $m_i$ is the model flux, $\sigma_i$ is Kepler's
-photometric uncertainty for that cadence. Candidates with high $\mathcal{L}$ are
-kept; the rest are rejected. All kept samples together form the **posterior distribution**.
+photometric uncertainty for that cadence. Each data point downloaded from MAST comes including its own individual $\sigma_i$ value. 
+Candidates with high $\mathcal{L}$ are kept; the rest are rejected. All kept samples together form the **posterior distribution**.
 
 ---
 **Markov Chain: guided exploration**
@@ -95,7 +95,7 @@ kept; the rest are rejected. All kept samples together form the **posterior dist
 Pure random sampling wastes time in low-likelihood regions. A Markov Chain concentrates
 the sampling: each new candidate is proposed *near* the current position, weighted by
 the likelihood ratio. The chain gravitates toward where the model fits and explores
-that region thoroughly. We use `emcee`'s affine-invariant ensemble sampler —
+that region thoroughly. We use emcee's affine-invariant ensemble sampler, in which
 the walkers learn from each other's positions to stretch proposals in the directions
 the posterior actually occupies.
 
