@@ -40,7 +40,7 @@ def render():
     st.markdown('<div class="step-header">Target Star</div>', unsafe_allow_html=True)
     target = st.text_input(
         label="target",
-        placeholder="e.g. Kepler-97, Kepler 183",
+        placeholder="e.g. Kepler-5",
         label_visibility="collapsed",
         value=st.session_state.get("prefill_target", ""),
     )

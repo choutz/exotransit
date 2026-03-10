@@ -1,0 +1,264 @@
+"/Users/charlie/Desktop/job search 2026/exotransit/.venv/bin/python" /Users/charlie/Desktop/job search 2026/exotransit/tests/threshold_optimization/fit_thresholds_2stage.py 
+
+Parsing: /Users/charlie/Desktop/job search 2026/exotransit/tests/threshold_optimization/candidates_20260310_003034.csv
+
+  Total candidates: 1250
+  Real planets:     613  (49.0%)
+  False positives:  637  (51.0%)
+  Targets covered:  250
+  Recall floor:     95%
+
+========================================================================
+  FEATURE DISTRIBUTIONS  (real vs false positive)
+========================================================================
+  Feature                        Real median      Real p25–p75     FP median        FP p25–p75
+  ----------------------------------------------------------------------------------------
+  SDE (Signal Detection Efficiency)         51.63         33.7–64.6          8.42          7.5–11.0
+  SNR (Signal-to-Noise Ratio)          28.01         20.7–41.6         10.44          8.0–16.7
+  Transit depth (ppm)                 757.61      436.9–1193.1        571.39       366.0–935.3
+  Depth uncertainty (ppm)              25.23         13.5–41.8         48.27         23.2–87.6
+  In-transit data points              331.00       184.0–535.0         45.00         23.0–99.0
+  Expected transit windows             61.29        31.4–115.1         10.19          7.7–24.8
+  Per-transit SNR                       3.69           2.6–5.8          2.70           1.9–4.3
+  Duration/period ratio (duty cycle)          0.01           0.0–0.0          0.00           0.0–0.0
+  Transit duration (hours)              2.69           2.1–4.4          1.30           0.6–2.7
+  Transit point coverage ratio         54.10        26.8–103.7         10.76          7.3–24.8
+  Has alias periods (0=no, 1=yes)          0.00           0.0–0.0          0.00           0.0–1.0
+
+========================================================================
+  PER-FEATURE THRESHOLD SWEEP  (recall floor: 95%)
+========================================================================
+  Feature                               Dir   Threshold   Recall     Prec       F1   FP cut
+  ------------------------------------------------------------------------
+  SDE (Signal Detection Efficiency)      >=      11.413    95.3%    80.1%    0.870      492
+  SNR (Signal-to-Noise Ratio)            >=      12.474    95.1%    70.8%    0.812      397
+  Transit depth (ppm)                    >=      82.072   100.0%    49.0%    0.658        0
+  Depth uncertainty (ppm)                <=      79.859    95.3%    56.7%    0.711      191
+  In-transit data points                 >=      87.281    95.1%    76.1%    0.846      454
+  Expected transit windows               >=      12.102    96.1%    69.5%    0.806      378
+  Per-transit SNR                        >=       1.690    97.4%    53.4%    0.690      116
+  Duration/period ratio (duty cycle)     <=       0.066    99.8%    49.2%    0.659        6
+  Transit duration (hours)               >=       1.195    97.2%    65.0%    0.779      316
+  Transit point coverage ratio           >=      11.051    95.1%    65.4%    0.775      328
+  Has alias periods (0=no, 1=yes)        <=       1.000   100.0%    49.0%    0.658        0
+
+========================================================================
+  PAIRWISE GRID SCAN (top 4 features, recall floor: 95%)
+========================================================================
+
+  SDE (Signal Detection Efficiency)  >=  11.035
+  In-transit data points  >=  48.000
+  → recall=95.1%  precision=90.1%  F1=0.925  FP cut=573/637
+
+  SDE (Signal Detection Efficiency)  >=  11.035
+  SNR (Signal-to-Noise Ratio)  >=  10.218
+  → recall=95.1%  precision=81.3%  F1=0.877  FP cut=503/637
+
+  SDE (Signal Detection Efficiency)  >=  11.035
+  Expected transit windows  >=  6.741
+  → recall=95.1%  precision=83.6%  F1=0.890  FP cut=523/637
+
+  SDE (Signal Detection Efficiency)  >=  11.035
+  Transit duration (hours)  >=  0.768
+  → recall=95.3%  precision=86.4%  F1=0.906  FP cut=545/637
+
+  In-transit data points  >=  81.000
+  SNR (Signal-to-Noise Ratio)  >=  10.966
+  → recall=95.1%  precision=78.2%  F1=0.858  FP cut=474/637
+
+  In-transit data points  >=  81.000
+  Expected transit windows  >=  9.771
+  → recall=95.1%  precision=77.4%  F1=0.854  FP cut=467/637
+
+  In-transit data points  >=  68.000
+  Transit duration (hours)  >=  1.296
+  → recall=95.4%  precision=79.7%  F1=0.869  FP cut=488/637
+
+  SNR (Signal-to-Noise Ratio)  >=  10.966
+  Expected transit windows  >=  9.771
+  → recall=95.1%  precision=78.6%  F1=0.861  FP cut=478/637
+
+  SNR (Signal-to-Noise Ratio)  >=  11.448
+  Transit duration (hours)  >=  1.296
+  → recall=95.1%  precision=76.9%  F1=0.850  FP cut=462/637
+
+  Expected transit windows  >=  9.771
+  Transit duration (hours)  >=  1.008
+  → recall=95.3%  precision=74.5%  F1=0.836  FP cut=437/637
+
+========================================================================
+  DECISION TREE  (max_depth=4, recall floor: 95%)
+========================================================================
+  Training performance [single-stage, all candidates]: recall=94.6%  precision=99.0%  F1=0.967  FP cut=631/637
+  Warning: recall 94.6% is below the 95% floor.
+  Try --depth 3 for a shallower tree, or --recall-floor for a looser constraint.
+
+  Tree rules (feature >= threshold at each split):
+
+    |--- sde <= 17.30
+    |   |--- duty_cycle <= 0.01
+    |   |   |--- per_transit_snr <= 1.06
+    |   |   |   |--- class: 1
+    |   |   |--- per_transit_snr >  1.06
+    |   |   |   |--- sde <= 6.45
+    |   |   |   |   |--- class: 1
+    |   |   |   |--- sde >  6.45
+    |   |   |   |   |--- class: 0
+    |   |--- duty_cycle >  0.01
+    |   |   |--- sde <= 10.17
+    |   |   |   |--- duty_cycle <= 0.01
+    |   |   |   |   |--- class: 0
+    |   |   |   |--- duty_cycle >  0.01
+    |   |   |   |   |--- class: 0
+    |   |   |--- sde >  10.17
+    |   |   |   |--- snr <= 47.60
+    |   |   |   |   |--- class: 1
+    |   |   |   |--- snr >  47.60
+    |   |   |   |   |--- class: 0
+    |--- sde >  17.30
+    |   |--- n_transit_pts <= 49.00
+    |   |   |--- depth_ppm <= 261.19
+    |   |   |   |--- class: 1
+    |   |   |--- depth_ppm >  261.19
+    |   |   |   |--- class: 0
+    |   |--- n_transit_pts >  49.00
+    |   |   |--- coverage_ratio <= 265.26
+    |   |   |   |--- coverage_ratio <= 7.75
+    |   |   |   |   |--- class: 1
+    |   |   |   |--- coverage_ratio >  7.75
+    |   |   |   |   |--- class: 1
+    |   |   |--- coverage_ratio >  265.26
+    |   |   |   |--- sde <= 36.71
+    |   |   |   |   |--- class: 0
+    |   |   |   |--- sde >  36.71
+    |   |   |   |   |--- class: 1
+    
+
+  Feature importances:
+    sde                       0.868  ██████████████████████████████████
+    n_transit_pts             0.068  ██
+    duty_cycle                0.026  █
+    coverage_ratio            0.020  
+    snr                       0.012  
+    depth_ppm                 0.004  
+    per_transit_snr           0.003  
+
+  Per-target CSV: /Users/charlie/Desktop/job search 2026/exotransit/tests/threshold_optimization/per_target_candidates_20260310_003034.csv
+  250 targets  |  PASS: 208 (83%)  FALSE_POSITIVE: 12  MISSED/PARTIAL: 30
+
+========================================================================
+  TOP SINGLE-FEATURE THRESHOLDS
+========================================================================
+  SDE (Signal Detection Efficiency)    >= 11.413  →  recall=95.3%  precision=80.1%  F1=0.870
+  In-transit data points               >= 87.281  →  recall=95.1%  precision=76.1%  F1=0.846
+  SNR (Signal-to-Noise Ratio)          >= 12.474  →  recall=95.1%  precision=70.8%  F1=0.812
+  Expected transit windows             >= 12.102  →  recall=96.1%  precision=69.5%  F1=0.806
+  Transit duration (hours)             >= 1.195  →  recall=97.2%  precision=65.0%  F1=0.779
+
+========================================================================
+  TWO-STAGE ANALYSIS: TCE pre-filter → decision tree
+  Recall floor: 95%  |  Tree max_depth: 4
+========================================================================
+
+  ── Baseline: single-stage decision tree (no TCE pre-filter) ──
+  recall=94.6%  precision=99.0%  F1=0.967  FP cut=631/637  real kept=580/613
+
+  ── TCE config: LOOSE ──
+  TCE survivors: 976/1250  (600 real, 376 FP)
+  TCE stage:     recall=97.9%  precision=61.5%  FP removed=261/637
+  Combined pipeline: recall=95.6%  precision=98.3%  F1=0.969  FP cut=627/637  real kept=586/613
+    ▲ vs baseline: F1 +0.002  precision -0.7pp  recall +1.0pp
+
+  ── TCE config: MEDIUM ──
+  TCE survivors: 903/1250  (594 real, 309 FP)
+  TCE stage:     recall=96.9%  precision=65.8%  FP removed=328/637
+  Combined pipeline: recall=94.6%  precision=98.8%  F1=0.967  FP cut=630/637  real kept=580/613
+    ▼ vs baseline: F1 -0.001
+
+  ── TCE config: TIGHT ──
+  TCE survivors: 779/1250  (541 real, 238 FP)
+  TCE stage:     recall=88.3%  precision=69.4%  FP removed=399/637
+  Combined pipeline: recall=85.0%  precision=100.0%  F1=0.919  FP cut=637/637  real kept=521/613
+    ▼ vs baseline: F1 -0.049
+
+  ============================================================
+  BEST TWO-STAGE CONFIG: TCE=LOOSE
+  recall=95.6%  precision=98.3%  F1=0.969  FP cut=627/637  real kept=586/613
+  ============================================================
+
+  TCE thresholds (LOOSE):
+    SDE (Signal Detection Efficiency)    >= 7.1
+    SNR (Signal-to-Noise Ratio)          >= 7.1
+    Per-transit SNR                      >= 1.2
+    Duration/period ratio (duty cycle)   <= 0.1
+    Expected transit windows             >= 3.0
+    Transit duration (hours)             >= 0.5
+    Transit depth (ppm)                  <= 30000
+    (+ TCE-15: depth_ppm >= 60)
+
+  Stage-2 decision tree rules:
+
+    |--- sde <= 17.30
+    |   |--- duty_cycle <= 0.01
+    |   |   |--- sde <= 16.81
+    |   |   |   |--- snr <= 7.27
+    |   |   |   |   |--- class: 0
+    |   |   |   |--- snr >  7.27
+    |   |   |   |   |--- class: 0
+    |   |   |--- sde >  16.81
+    |   |   |   |--- sde <= 17.05
+    |   |   |   |   |--- class: 1
+    |   |   |   |--- sde >  17.05
+    |   |   |   |   |--- class: 0
+    |   |--- duty_cycle >  0.01
+    |   |   |--- sde <= 10.17
+    |   |   |   |--- duty_cycle <= 0.01
+    |   |   |   |   |--- class: 1
+    |   |   |   |--- duty_cycle >  0.01
+    |   |   |   |   |--- class: 0
+    |   |   |--- sde >  10.17
+    |   |   |   |--- snr <= 47.60
+    |   |   |   |   |--- class: 1
+    |   |   |   |--- snr >  47.60
+    |   |   |   |   |--- class: 0
+    |--- sde >  17.30
+    |   |--- n_transit_pts <= 49.00
+    |   |   |--- per_transit_snr <= 4.97
+    |   |   |   |--- class: 1
+    |   |   |--- per_transit_snr >  4.97
+    |   |   |   |--- class: 0
+    |   |--- n_transit_pts >  49.00
+    |   |   |--- coverage_ratio <= 265.26
+    |   |   |   |--- coverage_ratio <= 7.75
+    |   |   |   |   |--- class: 1
+    |   |   |   |--- coverage_ratio >  7.75
+    |   |   |   |   |--- class: 1
+    |   |   |--- coverage_ratio >  265.26
+    |   |   |   |--- depth_unc_ppm <= 5.57
+    |   |   |   |   |--- class: 0
+    |   |   |   |--- depth_unc_ppm >  5.57
+    |   |   |   |   |--- class: 1
+    
+
+  Stage-2 feature importances:
+    sde                       0.866  ██████████████████████████████████
+    n_transit_pts             0.034  █
+    coverage_ratio            0.033  █
+    duty_cycle                0.030  █
+    depth_unc_ppm             0.018  
+    snr                       0.017  
+    per_transit_snr           0.003  
+
+  ────────────────────────────────────────────────────────────────────────
+  SUMMARY: single-stage vs two-stage
+  ────────────────────────────────────────────────────────────────────────
+  Config                           Recall     Prec       F1      FP cut   Real kept
+  ────────────────────────────────────────────────────────────────────────
+  Baseline (tree only)              94.6%    99.0%    0.967      631/637      580/613
+  TCE LOOSE → tree                  95.6%    98.3%    0.969      627/637      586/613  ◀ best
+  TCE MEDIUM → tree                 94.6%    98.8%    0.967      630/637      580/613  
+  TCE TIGHT → tree                  85.0%   100.0%    0.919      637/637      521/613  
+
+
+
+Process finished with exit code 0
