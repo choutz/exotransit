@@ -116,7 +116,7 @@ the fact — they are the actual spread of solutions the data cannot rule out.
 
         for i, bls in enumerate(all_bls):
             with st.spinner(f"Running MCMC for planet {i+1} of {len(all_bls)} "
-                           f"(P = {bls.best_period:.3f} d)…  ~2 min per planet"):
+                           f"(P = {bls.best_period:.3f} d)…  ~1 min per planet"):
                 try:
                     mcmc = run_mcmc(
                         lc, bls,

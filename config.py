@@ -38,7 +38,7 @@ class PipelineConfig:
 
 LOW = PipelineConfig(
     bls=BLSConfig(
-        max_period_grid_points=10_000,
+        max_period_grid_points=20_000,
         min_period=2,
         max_period=100
     ),
