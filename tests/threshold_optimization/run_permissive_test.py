@@ -296,7 +296,7 @@ def main():
     df["max_period"]   = df["periods_list"].apply(max)
 
     df_run = df[(df["min_period"] > 2) & (df["max_period"] < 100)].copy().reset_index(drop=True)
-    df_run = df_run.iloc[:500]
+    df_run = df_run.iloc[:250]
 
     logger.info(f"Systems in truth data:                 {len(df)}")
     logger.info(f"Systems with all periods in (2, 100)d: {len(df_run)}")

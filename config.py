@@ -38,7 +38,7 @@ class PipelineConfig:
 
 LOW = PipelineConfig(
     bls=BLSConfig(
-        max_period_grid_points=15_000,
+        max_period_grid_points=20_000,
         min_period=2,
         max_period=100
     ),
@@ -48,7 +48,7 @@ LOW = PipelineConfig(
         n_burnin=500,
     ),
     max_planets=5,
-    max_quarters=4,
+    max_quarters=8,
 )
 
 MEDIUM = PipelineConfig(
