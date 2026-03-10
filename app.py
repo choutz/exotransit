@@ -143,7 +143,30 @@ h1, h2, h3 {
 }
 
 /* ── Buttons ───────────────────────────────────────────────────────────── */
-[data-testid="stBaseButton-primary"],
+
+/* Primary buttons — Analyze + all nav buttons: blue gradient */
+[data-testid="stBaseButton-primary"] {
+    background: linear-gradient(180deg, #3b82f6 0%, #2563eb 100%) !important;
+    border: 1px solid rgba(37, 99, 235, 0.5) !important;
+    border-radius: 8px !important;
+}
+
+[data-testid="stBaseButton-primary"] p {
+    color: #ffffff !important;
+    font-family: 'DM Mono', monospace !important;
+    font-size: 0.85rem !important;
+    letter-spacing: 0.05em !important;
+    white-space: nowrap !important;
+}
+
+[data-testid="stBaseButton-primary"]:hover {
+    background: linear-gradient(180deg, #60a5fa 0%, #3b82f6 100%) !important;
+    border: 1px solid rgba(59, 130, 246, 0.6) !important;
+    filter: none !important;
+    opacity: 1 !important;
+}
+
+/* Secondary buttons — example chips: white/light, unchanged */
 [data-testid="stBaseButton-secondary"],
 [data-testid="stPopoverButton"] {
     background-color: rgba(255, 255, 255, 0.9) !important;
@@ -151,7 +174,6 @@ h1, h2, h3 {
     border-radius: 8px !important;
 }
 
-[data-testid="stBaseButton-primary"] p,
 [data-testid="stBaseButton-secondary"] p,
 [data-testid="stPopoverButton"] p {
     color: #1e293b !important;
@@ -160,8 +182,7 @@ h1, h2, h3 {
     letter-spacing: 0.05em !important;
 }
 
-/* Freeze hover — no visual change */
-[data-testid="stBaseButton-primary"]:hover,
+/* Freeze hover on secondary — no visual change */
 [data-testid="stBaseButton-secondary"]:hover,
 [data-testid="stPopoverButton"]:hover {
     background-color: rgba(255, 255, 255, 0.9) !important;
@@ -356,10 +377,10 @@ def _render_step_indicator(current: int):
 # ── Navigation buttons ────────────────────────────────────────────────────────
 def _nav_buttons(prev_step: int | None, next_step: int | None, next_label: str = "Continue →"):
     st.markdown("<div style='margin-top: 2.5rem;'></div>", unsafe_allow_html=True)
-    cols = st.columns([1, 3, 1])
+    cols = st.columns([1, 2, 1])
     if prev_step is not None:
         with cols[0]:
-            if st.button("← Back", key=f"back_{prev_step}", use_container_width=True):
+            if st.button("← Back", key=f"back_{prev_step}", type="primary", use_container_width=True):
                 st.session_state.step = prev_step
                 st.rerun()
     if next_step is not None:
@@ -407,7 +428,7 @@ else:
         st.markdown("<div style='margin-top: 2.5rem;'></div>", unsafe_allow_html=True)
         col_back, col_mid, col_new = st.columns([1, 3, 1])
         with col_back:
-            if st.button("← Back", key="back_step4", use_container_width=True):
+            if st.button("← Back", key="back_step4", type="primary", use_container_width=True):
                 st.session_state.step = 3
                 st.rerun()
         with col_new:
