@@ -33,7 +33,7 @@ from datetime import datetime
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from config import MEDIUM
+from config import LOW
 from tests.helpers import get_light_curve
 from exotransit.detection.multi_planet import find_all_planets
 from exotransit.detection.bls import run_bls
@@ -373,7 +373,7 @@ def run_target(target_name, truth_n, truth_periods, truth_radii, conf):
 # ── Main ──────────────────────────────────────────────────────────────────────
 
 def main():
-    conf = MEDIUM
+    conf = LOW
     summary_path = PROJECT_ROOT / "tests" / "summary.csv"
 
     logger.info("=" * 72)

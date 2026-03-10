@@ -88,7 +88,7 @@ def _biweight_trend(
     Compute a rolling biweight trend estimate.
 
     For each point i, collects all flux values within ±window_days/2 in time
-    and computes the biweight location — a robust weighted mean that
+    and computes the biweight location, a robust weighted mean that
     down-weights outliers via Tukey's bisquare kernel.
 
     Parameters
@@ -188,7 +188,7 @@ def fetch_light_curve(
             raw_flux_list.append(lc.flux.value)
 
             # Normalize per quarter to remove inter-quarter flux jumps.
-            # No detrending here — the biweight runs once on the full stitched
+            # No detrending here. the biweight runs once on the full stitched
             # baseline, avoiding quarter-boundary edge effects.
             lc = lc.remove_nans().remove_outliers(sigma_upper=5.0, sigma_lower=np.inf)
             lc = lc.normalize()
@@ -338,6 +338,3 @@ def redetrend_with_mask(lc: LightCurveData, bls_results: list) -> LightCurveData
         flux_err_normalized=lc.flux_err_normalized[finite_mask],
     )
 
-
-# Keep the old name as an alias so existing call sites don't break
-fetch_stitched_light_curve = fetch_light_curve

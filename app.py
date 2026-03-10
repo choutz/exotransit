@@ -9,7 +9,7 @@ Run with:
 """
 
 import streamlit as st
-from config import FULL, MEDIUM
+from config import LOW
 
 st.set_page_config(
     page_title="ExoTransit",
@@ -190,7 +190,7 @@ hr { border-color: rgba(148, 163, 184, 0.1) !important; }
 # ── Session state bootstrap ──────────────────────────────────────────────────
 def _init_state():
     defaults = dict(
-        conf=MEDIUM,
+        conf=LOW,
         step=0,
         target=None,
         lc=None,

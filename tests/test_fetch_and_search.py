@@ -1,9 +1,9 @@
 import numpy as np
 from exotransit.detection.multi_planet import find_all_planets
 from tests.helpers import get_light_curve
-from config import MEDIUM, FULL
+from config import LOW
 
-conf = MEDIUM
+conf = LOW
 """
 passed with MEDIUM conf: 
 Kepler-7 perfect 1 planet

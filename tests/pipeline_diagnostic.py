@@ -21,7 +21,7 @@ from pathlib import Path
 # ── project imports ────────────────────────────────────────────────────────────
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from config import FULL, MEDIUM
+from config import LOW
 from tests.helpers import get_light_curve
 from exotransit.detection.bls import run_bls
 from exotransit.mcmc.fit_mcmc import run_mcmc
@@ -32,7 +32,7 @@ from exotransit.physics.limb_darkening import get_limb_darkening
 
 # ── configuration ──────────────────────────────────────────────────────────────
 TARGETS = [7, 144, 9, 15, 11]
-conf = MEDIUM
+conf = LOW
 TRUTH_CSV = Path(__file__).parent / "examples.csv"
 PERIOD_MATCH_TOL = 0.20   # 20% tolerance for matching detected period to truth
 R_SUN_TO_EARTH   = 109.076

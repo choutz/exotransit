@@ -36,6 +36,20 @@ class PipelineConfig:
     max_planets: int
     max_quarters: int
 
+LOW = PipelineConfig(
+    bls=BLSConfig(
+        max_period_grid_points=25_000,
+        min_period=2,
+        max_period=100
+    ),
+    mcmc=MCMCConfig(
+        n_walkers=32,
+        n_steps=4000,
+        n_burnin=500,
+    ),
+    max_planets=5,
+    max_quarters=4,
+)
 
 MEDIUM = PipelineConfig(
     bls=BLSConfig(
