@@ -84,9 +84,13 @@ MCMC posteriors combined with NASA Exoplanet Archive stellar parameters to deriv
 ## Architecture
 
 ```
+app.py                       — Streamlit entry point
+config.py                    — configuration profiles (MEDIUM / FULL)
+
 exotransit/
   pipeline/
     light_curves.py      — download, stitch, biweight-detrend; Pass 2 redetrend
+    observations.py      — available quarter/sector listing for the UI
     helpers.py           — flux_err extraction
 
   detection/
@@ -112,10 +116,11 @@ exotransit/
     steps/               — Streamlit UI (step0–step4)
 
 tests/
+  validate_against_truth.py  — end-to-end validation against NASA ephemerides
   threshold_optimization/
-    run_permissive_test.py    — permissive BLS data collection (no vetting gate)
-    fit_thresholds_2stage.py  — grid search + decision tree fitting on labeled candidates
-    candidates_*.csv          — labeled BLS candidates from validation runs
+    run_permissive_test.py     — permissive BLS data collection (no vetting gate)
+    fit_thresholds_2stage.py   — grid search + decision tree fitting on labeled candidates
+    bls_25000_8d/              — candidates and fit results from current config
 ```
 
 ---
