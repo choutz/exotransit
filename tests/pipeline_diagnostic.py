@@ -21,7 +21,7 @@ from pathlib import Path
 # ── project imports ────────────────────────────────────────────────────────────
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from config import LOW
+from config import CONF
 from tests.helpers import get_light_curve
 from exotransit.detection.bls import run_bls
 from exotransit.mcmc.fit_mcmc import run_mcmc
@@ -32,7 +32,7 @@ from exotransit.physics.limb_darkening import get_limb_darkening
 
 # ── configuration ──────────────────────────────────────────────────────────────
 TARGETS = [7, 144, 9, 15, 11]
-conf = LOW
+conf = CONF
 TRUTH_CSV = Path(__file__).parent / "examples.csv"
 PERIOD_MATCH_TOL = 0.05
 R_SUN_TO_EARTH   = 109.076
@@ -159,7 +159,7 @@ def run_diagnostic(kepler_num: int, truth_df: pd.DataFrame):
         mask = lc_work.create_transit_mask(
             period=bls.best_period,
             transit_time=bls.best_t0,
-            duration=bls.best_duration * 3.0,
+            duration=bls.best_duration * CONF.mask_width_factor,
         )
         lc_work.flux.value[mask] = np.nanmedian(lc_work.flux.value)
 
@@ -207,7 +207,7 @@ def _diagnose_planet(planet_i, bls, stellar, ld, truth_rows, lc):
     # shared geometry used in multiple sections
     cadence_days  = float(np.median(np.diff(lc.time)))
     exp_time_days = cadence_days
-    window        = max(bls.best_duration * 3.0, 0.3)
+    window        = max(bls.best_duration * CONF.mask_width_factor, 0.3)
     transit_mask_mcmc = np.abs(bls.folded_time) < window
     time_mcmc     = bls.folded_time[transit_mask_mcmc]
     flux_mcmc     = bls.folded_flux[transit_mask_mcmc]

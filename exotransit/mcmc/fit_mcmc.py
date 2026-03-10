@@ -34,6 +34,7 @@ from dataclasses import dataclass
 from exotransit.mcmc.helpers import _log_probability
 from exotransit.pipeline.light_curves import LightCurveData
 from exotransit.detection.bls import BLSResult
+from config import CONF
 
 logger = logging.getLogger(__name__)
 
@@ -187,7 +188,7 @@ def run_mcmc(
 
     # Clip to transit region: 3× BLS duration so ingress/egress are fully
     # included, but out-of-transit noise is limited.
-    window       = max(bls.best_duration * 3.0, 0.3)
+    window       = max(bls.best_duration * CONF.mask_width_factor, 0.3)
     transit_mask = np.abs(fold_t) < window
     time     = fold_t[transit_mask]
     flux     = fold_f[transit_mask]

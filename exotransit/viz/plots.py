@@ -16,6 +16,7 @@ from exotransit.detection.bls import BLSResult
 from exotransit.mcmc.fit_mcmc import MCMCResult
 from exotransit.physics.planets import PlanetPhysics
 from exotransit.physics.stars import StellarParams
+from config import CONF
 
 # Consistent color palette across all plots
 COLORS = {
@@ -649,7 +650,7 @@ def plot_transit_mask(
     phase_days[phase_days > bls.best_period / 2] -= bls.best_period
 
     zoom = 4.0 * bls.best_duration
-    half_mask = bls.best_duration * 1.5
+    half_mask = bls.best_duration * CONF.mask_width_factor/2
 
     fig = make_subplots(
         rows=1, cols=2,

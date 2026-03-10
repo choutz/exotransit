@@ -59,7 +59,7 @@ from logging.handlers import QueueHandler, QueueListener
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from config import LOW
+from config import CONF
 from tests.helpers import get_light_curve, CACHE_DIR
 from exotransit.detection.bls import run_bls
 from exotransit.pipeline.light_curves import LightCurveData
@@ -184,7 +184,7 @@ def run_target_permissive(
         return []
 
     lc_lk     = lk.LightCurve(time=lc.time, flux=lc.flux, flux_err=lc.flux_err)
-    max_iters = 5
+    max_iters = CONF.max_planets
     candidates = []
 
     for i in range(max_iters):
@@ -210,9 +210,9 @@ def run_target_permissive(
             logger.warning(f"  {target_name} iter {i}: BLS failed: {e}")
             break
 
-        if result.sde < 3.0:
-            logger.info(f"  {target_name} iter {i}: SDE={result.sde:.2f} < 3 — noise floor, stopping")
-            break
+        # if result.sde < 3.0:
+        #     logger.info(f"  {target_name} iter {i}: SDE={result.sde:.2f} < 3 — noise floor, stopping")
+        #     break
 
         is_real = int(any(
             abs(result.best_period - tp) / tp < 0.05
@@ -238,7 +238,7 @@ def run_target_permissive(
             mask = lc_lk.create_transit_mask(
                 period=result.best_period,
                 transit_time=result.best_t0,
-                duration=result.best_duration * 3.0,
+                duration=result.best_duration * CONF.mask_width_factor,
             )
             lc_lk.flux.value[mask] = np.nanmedian(lc_lk.flux.value)
         except Exception as e:
@@ -270,7 +270,7 @@ def main():
     args = parser.parse_args()
     n_workers = max(1, args.workers)
 
-    conf = LOW
+    conf = CONF
     summary_path = PROJECT_ROOT / "tests" / "summary.csv"
 
     # ── Logging setup ──────────────────────────────────────────────────────────

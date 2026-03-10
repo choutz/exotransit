@@ -10,7 +10,7 @@ Three profiles:
   FULL   — for maximum result quality and accuracy
 
 Import and use like:
-    from exotransit.config import LOW
+    from exotransit.config import CONF
 """
 
 from dataclasses import dataclass
@@ -36,10 +36,11 @@ class PipelineConfig:
     mcmc: MCMCConfig
     max_planets: int
     max_quarters: int
+    mask_width_factor: float
 
 LOW = PipelineConfig(
     bls=BLSConfig(
-        max_period_grid_points=20_000,
+        max_period_grid_points=25_000,
         min_period=2,
         max_period=100
     ),
@@ -50,6 +51,7 @@ LOW = PipelineConfig(
     ),
     max_planets=5,
     max_quarters=8,
+    mask_width_factor=1.5
 )
 
 MEDIUM = PipelineConfig(
@@ -65,6 +67,7 @@ MEDIUM = PipelineConfig(
     ),
     max_planets=6,
     max_quarters=12,
+    mask_width_factor=1.5
 )
 
 FULL = PipelineConfig(
@@ -80,4 +83,8 @@ FULL = PipelineConfig(
     ),
     max_planets=6,
     max_quarters=17,
+    mask_width_factor=1.5
 )
+
+
+CONF = LOW

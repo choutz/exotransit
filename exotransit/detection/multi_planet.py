@@ -6,6 +6,7 @@ from tqdm import tqdm
 from exotransit.detection.bls import BLSResult, run_bls
 from exotransit.pipeline.light_curves import LightCurveData, redetrend_with_mask
 import logging
+from config import CONF
 
 logger = logging.getLogger(__name__)
 
@@ -74,7 +75,7 @@ def find_all_planets(
             mask = lc_lk.create_transit_mask(
                 period=result.best_period,
                 transit_time=result.best_t0,
-                duration=result.best_duration * 3.0,
+                duration=result.best_duration * CONF.mask_width_factor,
             )
 
             # Check for ghosts/duplicates
@@ -172,7 +173,7 @@ def _save_mask_debug_plot(
     ax = axes[1]
     ax.scatter(phase[kept], flux[kept], s=1.5, c="#94a3b8", alpha=0.4, label="kept")
     ax.scatter(phase[mask], flux[mask], s=8,   c="#f43f5e", alpha=0.9, label="masked")
-    half_dur_phase = (result.best_duration * 1.5) / result.best_period
+    half_dur_phase = (result.best_duration * CONF.mask_width_factor/2) / result.best_period
     ax.axvspan(-half_dur_phase, half_dur_phase, color="#f43f5e", alpha=0.1, label="mask window")
     ax.set_xlabel("Phase")
     ax.set_ylabel("Flux")

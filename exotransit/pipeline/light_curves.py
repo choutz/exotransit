@@ -26,6 +26,7 @@ import numpy as np
 import lightkurve as lk
 from dataclasses import dataclass, field
 from astropy.stats import biweight_location
+from config import CONF
 
 from exotransit.pipeline.helpers import _extract_flux_err
 
@@ -301,7 +302,7 @@ def redetrend_with_mask(lc: LightCurveData, bls_results: list) -> LightCurveData
         planet_mask = lc_lk.create_transit_mask(
             period=bls.best_period,
             transit_time=bls.best_t0,
-            duration=bls.best_duration * 3.0,
+            duration=bls.best_duration * CONF.mask_width_factor,
         )
         combined_mask |= np.asarray(planet_mask)
 

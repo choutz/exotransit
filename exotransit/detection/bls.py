@@ -157,11 +157,9 @@ def run_bls(
     # 2. Define Duration Grid (Geometric Spacing)
     # We use geomspace because a 5-minute error on a 30-minute transit
     # is much more significant than a 5-minute error on a 5-hour transit.
-    dur_min = 0.02  # ~30 mins
-    dur_max = min(0.5, 0.15 * min_period)  # Max duration shouldn't exceed min period constraints
-
-    # 12 to 15 steps is usually the "sweet spot" for accuracy vs speed
-    durations = np.geomspace(dur_min, dur_max, 12)
+    dur_min = 0.02  # 30 min
+    dur_max = 0.5  # 12 hours
+    durations = np.geomspace(dur_min, dur_max, 15)
 
     # 3. Calculate Period Grid (Frequency Spacing)
     # The frequency step (df) should be small enough so the transit doesn't
@@ -184,7 +182,7 @@ def run_bls(
 
     # 4. Run the Model
     model = BoxLeastSquares(lc_lk.time, lc_lk.flux, lc_lk.flux_err)
-    pg_results = model.power(period_grid, durations, oversample=10)
+    pg_results = model.power(period_grid, durations, oversample=1)
 
 
     periods = np.asarray(pg_results.period)

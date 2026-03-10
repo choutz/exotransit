@@ -10,6 +10,7 @@ import logging
 import streamlit as st
 from exotransit.detection.multi_planet import find_all_planets
 from exotransit.viz.plots import plot_bls_power_spectrum, plot_phase_fold, plot_transit_mask
+from config import CONF
 
 logger = logging.getLogger(__name__)
 
@@ -245,7 +246,7 @@ was previously hidden beneath a stronger neighbor.
 
         if i < len(all_mask_data):
             md = all_mask_data[i]
-            mask_window_h = bls.best_duration * 1.5 * 24
+            mask_window_h = bls.best_duration * (CONF.mask_width_factor/2) * 24
             with st.expander(f"Masking diagnostic — how planet {i+1} was isolated"):
                 st.plotly_chart(
                     plot_transit_mask(
