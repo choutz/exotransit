@@ -7,7 +7,7 @@ compared against published values from examples.csv.
 Run from the repo root:
     python -m tests.pipeline_diagnostic
 
-Output goes entirely to the console. No assertions — this is for diagnosis, not CI.
+Output goes entirely to the console. No assertions, this is for diagnosis, not CI.
 """
 
 import logging
@@ -34,7 +34,7 @@ from exotransit.physics.limb_darkening import get_limb_darkening
 TARGETS = [7, 144, 9, 15, 11]
 conf = LOW
 TRUTH_CSV = Path(__file__).parent / "examples.csv"
-PERIOD_MATCH_TOL = 0.20   # 20% tolerance for matching detected period to truth
+PERIOD_MATCH_TOL = 0.05
 R_SUN_TO_EARTH   = 109.076
 AU_TO_RSUN       = 215.032
 

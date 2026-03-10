@@ -77,7 +77,7 @@ class BLSResult:
         peaks in the power spectrum. These are a known artifact of
         periodic signals and can be mistaken for additional planets.
     is_reliable : bool
-        Our honest assessment of whether this detection is trustworthy.
+        Our assessment of whether this detection is trustworthy.
     reliability_flags : list of str
         Human-readable list of any concerns about the detection.
         e.g. ["SDE below threshold", "Strong alias at P/2"]
@@ -113,14 +113,14 @@ def run_bls(
     box-shaped dip. The "power" at each period is basically how much
     better a box model fits the data compared to a flat line. A sharp peak
     in the power spectrum at some period P means the data has a repeating
-    box-shaped dip every P days — the signature of a transiting planet.
+    box-shaped dip every P days, the signature of a transiting planet.
 
-    Period grid: 100,000 linearly-spaced frequencies converted to periods.
+    Period grid: configurable number of linearly-spaced frequencies converted to periods.
     Linear frequency spacing ensures uniform sampling of transit repetition
     rate rather than orbital period.
 
-    Duration grid: 5 values from 1.2 to 12 hours. Missing the exact
-    duration only weakens the signal slightly; missing the period loses
+    Duration grid: 5 values from 30 minutes to upper limit bounded by min_period constraint.
+    Missing the exact duration only weakens the signal slightly; missing the period loses
     it entirely. So we search periods finely and durations coarsely.
 
     Parameters
@@ -177,8 +177,7 @@ def run_bls(
     n_points = int(np.ceil((f_max - f_min) / df))
 
     # Safety cap to prevent memory errors on extremely long baselines (e.g., years of data)
-    max_points = 200_000
-    n_points = min(n_points, max_points)
+    n_points = min(n_points, max_period_grid_points)
 
     # Generate the grid uniform in frequency, then convert to periods
     period_grid = 1.0 / np.linspace(f_max, f_min, n_points)
@@ -232,7 +231,7 @@ def run_bls(
 
     power_std = np.std(power)
 
-    # SDE: sigma above noise floor. Convention: > 7 = candidate worth examining
+    # SDE: sigma above noise floor.
     sde = float((power.max() - np.mean(power)) / power_std) if power_std > 0 else 0.0
     snr = float(transit_depth / depth_uncertainty) if np.isfinite(depth_uncertainty) and depth_uncertainty > 0 else 0.0
 

@@ -3,13 +3,14 @@ exotransit/config.py
 
 Pipeline configuration — single source of truth for all tunable parameters.
 
-Two profiles:
-  MEDIUM — for Streamlit app, balances speed with accuracy within
+Three profiles:
+  LOW    — for Streamlit app, balances speed with accuracy within
            Streamlit Community Cloud limits (1GB RAM, 1 vCPU)
-  FULL   — for local testing/validation, publication-quality results
+  MEDIUM
+  FULL   — for maximum result quality and accuracy
 
 Import and use like:
-    from exotransit.config import MEDIUM, FULL
+    from exotransit.config import LOW
 """
 
 from dataclasses import dataclass
