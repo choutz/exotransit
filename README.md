@@ -145,7 +145,15 @@ tests/
 streamlit run app.py
 ```
 
-Configuration profiles (`MEDIUM` for Streamlit Cloud, `FULL` for local) are in `config.py`.
+Three configuration profiles are defined in `config.py`:
+
+| Profile | Period grid | Quarters | Use |
+|---------|------------|----------|-----|
+| `LOW` | 25,000 | 8 | Live app (current default) |
+| `MEDIUM` | 100,000 | 12 | Higher accuracy, more memory |
+| `FULL` | 200,000 | 17 | Maximum quality, local only |
+
+`LOW` is the active config (`CONF = LOW`). It runs fast enough for a real-time web app experience on Streamlit Community Cloud while still recovering planet radii to within ~10% of truth. `FULL` is available for local runs where memory and time are not constraints.
 
 ---
 
