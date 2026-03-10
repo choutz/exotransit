@@ -1,6 +1,3 @@
-"/Users/charlie/Desktop/job search 2026/exotransit/.venv/bin/python" /Users/charlie/Desktop/job search 2026/exotransit/tests/threshold_optimization/fit_thresholds_2stage.py 
-
-Parsing: /Users/charlie/Desktop/job search 2026/exotransit/tests/threshold_optimization/candidates_20260310_003034.csv
 
   Total candidates: 1250
   Real planets:     613  (49.0%)
