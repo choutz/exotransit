@@ -22,8 +22,6 @@ The full pipeline was tested on five Kepler systems spanning one to five confirm
 | Kepler-20 e | 0.84 | 0.92 | +9.6% | Sub-Earth |
 | Kepler-20 f | 0.90 | 0.99 | +9.9% | MCMC not converged, depth ~98 ppm |
 
-**Kepler-183 stellar radius.** The NASA Exoplanet Archive returned 0.958 R☉ for Kepler-183; the correct value is 1.198 R☉, a −20% error. Since planet radius scales directly with stellar radius, both planets show errors of 15–23% despite accurate rp/R★ recovery from the light curve. This is a bad archive entry, not a pipeline failure.
-
 **Impact parameter degeneracy.** The impact parameter `b` is systematically recovered incorrectly for most planets. The biweight detrending slightly rounds transit ingress and egress shoulders, altering the transit shape in a way that creates a genuine degeneracy between `b` and `rp`. The sampler converges to a `b` value that fits the detrended data better than the published value. This is visible from a log-likelihood check: evaluating at the published parameters gives a worse score than the converged answer, meaning the detrended data genuinely prefers the wrong geometry. Radius accuracy is preserved because rp² is approximately equal to transit depth, which the detrending does not significantly alter. The geometry is wrong; the size is not.
 
 **Impact parameter at high inclination.** Two planets with the highest published impact parameters (Kepler-18 b at b = 0.741 and Kepler-58 d at b = 0.868) have the best b recovery in the validation sample. High-b transits have a distinctive V-shaped geometry that the sampler can identify even in slightly distorted data, giving the fit more shape information to constrain b. Low-b transits have a nearly flat, U-shaped bottom that the detrending distorts more severely.
