@@ -43,6 +43,7 @@ Run from project root:
 
 import sys
 import os
+import time
 import logging
 import argparse
 import multiprocessing
@@ -59,7 +60,7 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
 from config import MEDIUM
-from tests.helpers import get_light_curve
+from tests.helpers import get_light_curve, CACHE_DIR
 from exotransit.detection.bls import run_bls
 from exotransit.pipeline.light_curves import LightCurveData
 
@@ -281,13 +282,14 @@ def main():
     logger.info("PERMISSIVE BLS TEST — threshold optimization data collection")
     logger.info(f"  Config:     MEDIUM  ({conf.max_quarters} quarters, "
                 f"{conf.bls.max_period_grid_points:,} BLS points)")
-    logger.info(f"  Workers:    {n_workers}")
+    logger.info(f"  Workers:    {n_workers} (BLS phase only — downloads are sequential)")
+    logger.info(f"  LC cache:   {CACHE_DIR}")
     logger.info(f"  Truth data: {summary_path}")
     logger.info(f"  Output CSV: {CSV_FILE}")
     logger.info(f"  Log file:   {LOG_FILE}")
     logger.info("=" * 72)
 
-    # ── Load targets ───────────────────────────────────────────────────────────
+    # ── Load targets ──────────────────────────────────────────────────────────
     df = pd.read_csv(summary_path)
     df["periods_list"] = df["periods_d"].apply(parse_values)
     df["min_period"]   = df["periods_list"].apply(min)
@@ -306,7 +308,40 @@ def main():
     ]
     n_targets = len(targets)
 
-    # ── Parallel execution ─────────────────────────────────────────────────────
+    # ── Phase 1: sequential prefetch ───────────────────────────────────────────
+    # Download all light curves one at a time before launching workers.
+    # This prevents parallel workers from hammering MAST simultaneously.
+    # get_light_curve already caches to disk, so workers will read from
+    # cache and make zero network calls.
+    logger.info("Phase 1: prefetching light curves sequentially…")
+    failed_targets = set()
+    for i, (target_name, _, _) in enumerate(targets):
+        for attempt in range(3):
+            try:
+                get_light_curve(target_name, mission="Kepler", max_quarters=conf.max_quarters)
+                logger.info(f"  [{i+1}/{n_targets}] {target_name} — cached")
+                break
+            except Exception as e:
+                wait = 10 * (attempt + 1)
+                if attempt < 2:
+                    logger.warning(f"  [{i+1}/{n_targets}] {target_name} fetch failed "
+                                   f"(attempt {attempt+1}/3), retrying in {wait}s: {e}")
+                    time.sleep(wait)
+                else:
+                    logger.error(f"  [{i+1}/{n_targets}] {target_name} — "
+                                 f"all 3 attempts failed, skipping: {e}")
+                    failed_targets.add(target_name)
+        else:
+            continue
+        time.sleep(0.5)   # polite pause between downloads
+
+    targets = [(n, p, k) for n, p, k in targets if n not in failed_targets]
+    n_targets = len(targets)
+    logger.info(f"Phase 1 done — {n_targets} targets cached, "
+                f"{len(failed_targets)} skipped")
+    logger.info("")
+
+    # ── Phase 2: parallel BLS ──────────────────────────────────────────────────
     all_candidates  = []
     completed       = 0
     completion_times = []          # wall-clock seconds per completed target

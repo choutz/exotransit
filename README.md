@@ -1,5 +1,4 @@
 # exotransit
-#### Exoplanet Xtra Ornamental Transit Recognition and ANalysis Suite for Investigating Targets
 
 A transit detection pipeline built from scratch to find exoplanets from real Kepler photometry. Demonstrates signal processing on time-series data, BLS period search, Bayesian parameter estimation with MCMC, uncertainty propagation via posterior sampling, ML-based false positive vetting, and an interactive Streamlit app. Debugged and validated against NASA ephemerides.
 
