@@ -15,22 +15,24 @@ def assess_reliability(
         lc: LightCurveData,
 ) -> tuple[bool, list[str]]:
     """
-    Reliability vetting via a decision tree classifier trained on 1,488 labeled
-    BLS candidates from 248 Kepler targets (Kepler 1–250 permissive validation run).
+    Reliability vetting via a decision tree classifier trained on 1,250 labeled
+    BLS candidates from 250 Kepler targets (Kepler 1–250 permissive validation run,
+    sigma-clipping bug fixed, fast BLS config).
 
     The tree was fit using scikit-learn (DecisionTreeClassifier, max_depth=4,
     balanced class weights) and achieves on the training data:
-        recall    = 92.9%   (591/636 real planets kept)
-        precision = 97.7%   (838/852 false positives eliminated)
-        F1        = 0.952
+        recall    = 95.0%   (569/599 real planets kept)
+        precision = 96.1%   (628/651 false positives eliminated)
+        F1        = 0.955
 
     Feature importances from the fit:
-        sde                  0.922  (dominant — almost all discriminating power)
-        coverage_ratio       0.027
-        duty_cycle           0.023
-        n_transits_expected  0.012
-        duration_h           0.011
+        sde                  0.860  (dominant — almost all discriminating power)
+        n_transits_expected  0.055
+        n_transit_pts        0.035
+        coverage_ratio       0.018
+        duration_h           0.014
         per_transit_snr      0.010
+        duty_cycle           0.006
 
     WHY A DECISION TREE INSTEAD OF THE NASA TCE FRAMEWORK
     ──────────────────────────────────────────────────────
@@ -63,15 +65,15 @@ def assess_reliability(
     at 60–100d periods — is an experience-breaking wrong answer. The sin here
     is precision, not recall.
 
-    Empirical testing on 248 Kepler targets showed that the TCE checks, even
-    after tuning, left a 57% false positive rate among BLS candidates. A
+    Empirical testing on 250 Kepler targets showed that the TCE checks, even
+    after tuning, left a >50% false positive rate among BLS candidates. A
     two-stage architecture (TCE pre-filter + decision tree) was also tested and
     performed marginally worse than the tree alone — the tree had already
     learned the TCE-relevant boundaries from the data, calibrated to this
     pipeline's specific output rather than to a theoretical noise model.
 
     This implementation is not rigorous cross-validated ML. The tree was fit and
-    evaluated on the same 248-target dataset. It will not generalize without
+    evaluated on the same 250-target dataset. It will not generalize without
     retraining to TESS, to very noisy stars, or to targets outside Kepler 1–250.
     For the purpose of making the app work well and look credible for its
     intended targets, it is the right tool.
@@ -85,107 +87,131 @@ def assess_reliability(
         per_transit_snr      = snr / sqrt(n_transits_expected)
         coverage_ratio       = n_transit_points / (best_duration / cadence)
 
-    The tree (dead branches from sklearn overfitting removed, class preserved):
+    Raw sklearn tree:
 
-    if sde <= 19.17:
-        if duty_cycle == 0.0:                         # floating-point exact zero
-            if sde > 13.04 and per_transit_snr <= 3.43:
-                → REAL
-            else:
-                → FALSE POSITIVE
-        else:                                         # duty_cycle > 0
-            if sde > 13.29 and duration_h <= 6.41:
-                → REAL
-            else:
-                → FALSE POSITIVE
-    else:                                             # sde > 19.17
-        if coverage_ratio <= 492.68:
-            if n_transits_expected > 10.74 and duty_cycle <= 0.07:
-                → REAL
-            else:
-                → FALSE POSITIVE
-        else:                                         # coverage_ratio > 492.68
-            → FALSE POSITIVE   (both sklearn leaves are class 0)
+        |--- sde <= 15.12
+        |   |--- sde <= 9.91
+        |   |   |--- duty_cycle <= 0.01
+        |   |   |   |--- depth_ppm <= 163.19  → class: 0
+        |   |   |   |--- depth_ppm >  163.19  → class: 0
+        |   |   |--- duty_cycle >  0.01
+        |   |   |   |--- duty_cycle <= 0.01   → class: 1   ← impossible branch
+        |   |   |   |--- duty_cycle >  0.01   → class: 0
+        |   |--- sde >  9.91
+        |   |   |--- n_transits_expected <= 13.75
+        |   |   |   |--- n_transit_pts <= 120.50  → class: 0
+        |   |   |   |--- n_transit_pts >  120.50  → class: 0
+        |   |   |--- n_transits_expected >  13.75
+        |   |   |   |--- duration_h <= 7.92   → class: 1
+        |   |   |   |--- duration_h >  7.92   → class: 0
+        |--- sde >  15.12
+        |   |--- n_transit_pts <= 65.00        → class: 0
+        |   |--- n_transit_pts >  65.00
+        |   |   |--- coverage_ratio <= 277.04
+        |   |   |   |--- duration_h <= 10.80  → class: 1
+        |   |   |   |--- duration_h >  10.80  → class: 1
+        |   |   |--- coverage_ratio >  277.04
+        |   |   |   |--- per_transit_snr <= 2.66  → class: 1
+        |   |   |   |--- per_transit_snr >  2.66  → class: 0
 
-    Note on the duty_cycle == 0.0 branch: sklearn split on duty_cycle <= 0.00
-    and then immediately re-split on duty_cycle <= 0.00 in the right child,
-    producing a branch that can never be entered. The re-split is an artifact
-    of floating-point values that are > 0.00 in display but == 0 internally.
-    The implemented logic collapses this correctly: duty_cycle is treated as
-    exactly zero when best_duration / best_period rounds to zero in float64,
-    which is the same condition sklearn used.
+    Dead branches collapsed (class preserved):
+
+    if sde <= 15.12:
+        if sde <= 9.91:
+            → FALSE POSITIVE
+            (all leaves under sde ≤ 9.91 are class 0, including the
+             impossible duty_cycle > 0.01 → duty_cycle ≤ 0.01 re-split)
+        else:                                     # 9.91 < sde <= 15.12
+            if n_transits_expected > 13.75 and duration_h <= 7.92:
+                → REAL
+            else:
+                → FALSE POSITIVE
+                (n_transits_expected ≤ 13.75 has both leaves class 0)
+    else:                                         # sde > 15.12
+        if n_transit_pts <= 65:
+            → FALSE POSITIVE
+        else:                                     # n_transit_pts > 65
+            if coverage_ratio <= 277.04:
+                → REAL
+                (both duration_h leaves are class 1 — collapsed)
+            else:                                 # coverage_ratio > 277.04
+                if per_transit_snr <= 2.66:
+                    → REAL
+                else:
+                    → FALSE POSITIVE
     """
     flags = []
 
     # ── Derived features (match training feature set exactly) ─────────────────
-    total_baseline       = lc.time.max() - lc.time.min()
-    cadence_days         = float(np.median(np.diff(lc.time)))
-    n_transits_expected  = total_baseline / best_period
-    per_transit_snr      = snr / np.sqrt(max(n_transits_expected, 1))
-    duty_cycle           = best_duration / best_period
-    duration_h           = best_duration * 24.0
-    expected_points      = max(best_duration / cadence_days, 2.0)
-    coverage_ratio       = n_transit_points / expected_points if expected_points > 0 else 0.0
+    total_baseline      = lc.time.max() - lc.time.min()
+    cadence_days        = float(np.median(np.diff(lc.time)))
+    n_transits_expected = total_baseline / best_period
+    per_transit_snr     = snr / np.sqrt(max(n_transits_expected, 1))
+    duty_cycle          = best_duration / best_period
+    duration_h          = best_duration * 24.0
+    expected_points     = max(best_duration / cadence_days, 2.0)
+    coverage_ratio      = n_transit_points / expected_points if expected_points > 0 else 0.0
 
     # ── Decision tree ──────────────────────────────────────────────────────────
-    # Implements the sklearn tree exactly, with dead branches collapsed.
-    # See docstring for full tree structure and derivation notes.
+    # Implements the sklearn tree with dead branches collapsed.
+    # See docstring for full raw tree and derivation notes.
 
-    if sde <= 19.17:
+    if sde <= 15.12:
 
-        if duty_cycle == 0.0:
-            # duty_cycle is floating-point zero — short-period / short-duration
-            # candidates where best_duration / best_period underflows to 0.0.
-            # sklearn learned this subpopulation is real only in a narrow window:
-            # SDE strong enough to be above noise but per-transit SNR not so high
-            # that it looks like a different kind of artifact.
-            if sde > 13.04 and per_transit_snr <= 3.43:
-                pass  # → class 1 (real)
-            else:
-                flags.append(
-                    f"TREE: sde={sde:.2f} ≤ 19.17, duty_cycle=0, "
-                    f"failed sde > 13.04 and per_transit_snr ≤ 3.43 "
-                    f"(sde={sde:.2f}, per_transit_snr={per_transit_snr:.2f})"
-                )
+        if sde <= 9.91:
+            # All leaves under this branch are class 0 — every combination of
+            # duty_cycle and depth produces a false positive. Below SDE=9.91
+            # the signal is too weak to trust regardless of other features.
+            flags.append(
+                f"TREE: sde={sde:.2f} ≤ 9.91 — signal too weak to be reliable"
+            )
 
         else:
-            # duty_cycle > 0 — normal case where duration is a meaningful
-            # fraction of the period. The tree uses SDE + duration to discriminate.
-            # duration_h > 6.41 rejects pathologically long transits that are
-            # almost certainly detrending artifacts or eclipsing binaries.
-            if sde > 13.29 and duration_h <= 6.41:
+            # 9.91 < sde <= 15.12 — moderate signal. Real only if there are
+            # enough transit windows AND the duration is physically plausible.
+            # n_transits_expected ≤ 13.75 has both leaves class 0 (collapsed).
+            if n_transits_expected > 13.75 and duration_h <= 7.92:
                 pass  # → class 1 (real)
             else:
                 flags.append(
-                    f"TREE: sde={sde:.2f} ≤ 19.17, duty_cycle={duty_cycle:.4f} > 0, "
-                    f"failed sde > 13.29 and duration_h ≤ 6.41 "
-                    f"(sde={sde:.2f}, duration_h={duration_h:.2f})"
+                    f"TREE: sde={sde:.2f} in (9.91, 15.12], "
+                    f"failed n_transits_expected > 13.75 and duration_h ≤ 7.92 "
+                    f"(n_transits={n_transits_expected:.1f}, duration_h={duration_h:.2f})"
                 )
 
     else:
-        # sde > 19.17 — strong signal. The hard work is already done; the tree
-        # uses coverage_ratio, n_transits_expected, and duty_cycle to clean up
-        # edge cases.
+        # sde > 15.12 — strong signal. The tree focuses on data coverage quality
+        # to catch the remaining false positives.
 
-        if coverage_ratio <= 492.68:
-            # Normal coverage. Require enough transit windows and a plausible
-            # duty cycle.
-            if n_transits_expected > 10.74 and duty_cycle <= 0.07:
+        if n_transit_points <= 65:
+            # Too few in-transit data points for a confident detection even at
+            # high SDE — likely a short-duration systematic or sparse cadence
+            # hitting a few outlier points.
+            flags.append(
+                f"TREE: sde={sde:.2f} > 15.12 but n_transit_pts={n_transit_points} ≤ 65 "
+                f"— insufficient in-transit coverage"
+            )
+
+        else:
+            # n_transit_pts > 65: good coverage. coverage_ratio distinguishes
+            # normal transits from anomalously wide ones.
+            if coverage_ratio <= 277.04:
+                # Normal coverage ratio — real regardless of duration.
+                # Both duration_h leaves (≤ 10.80 and > 10.80) are class 1.
                 pass  # → class 1 (real)
             else:
-                flags.append(
-                    f"TREE: sde={sde:.2f} > 19.17, coverage_ratio={coverage_ratio:.1f} ≤ 492.68, "
-                    f"failed n_transits_expected > 10.74 and duty_cycle ≤ 0.07 "
-                    f"(n_transits={n_transits_expected:.1f}, duty_cycle={duty_cycle:.4f})"
-                )
-        else:
-            # coverage_ratio > 492.68 is an extreme outlier — far more in-transit
-            # points than the transit duration implies. Both sklearn leaves here
-            # are class 0: likely a systematic or a severely overestimated duration.
-            flags.append(
-                f"TREE: sde={sde:.2f} > 19.17 but coverage_ratio={coverage_ratio:.1f} > 492.68 "
-                f"— anomalous coverage, likely duration overestimate or systematic"
-            )
+                # coverage_ratio > 277.04: anomalously high — far more in-transit
+                # points than the duration implies. Per-transit SNR distinguishes
+                # genuine strong signals from duration overestimates.
+                if per_transit_snr <= 2.66:
+                    pass  # → class 1 (real)
+                else:
+                    flags.append(
+                        f"TREE: sde={sde:.2f} > 15.12, n_transit_pts={n_transit_points} > 65, "
+                        f"coverage_ratio={coverage_ratio:.1f} > 277.04, "
+                        f"per_transit_snr={per_transit_snr:.2f} > 2.66 "
+                        f"— anomalous coverage with high per-transit SNR, likely systematic"
+                    )
 
     # ── Hard physical limits (applied after tree, as absolute vetoes) ──────────
     # These are not in the tree because they were filtered before training —

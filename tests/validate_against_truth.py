@@ -1,5 +1,5 @@
 """
-tests/pipeline_diagnostic.py
+tests/validate_against_truth.py
 
 Diagnostic pipeline runner: BLS + MCMC with verbose per-step logging,
 compared against published values from examples.csv.
@@ -31,7 +31,7 @@ from exotransit.physics.stars import query_stellar_params
 from exotransit.physics.limb_darkening import get_limb_darkening
 
 # ── configuration ──────────────────────────────────────────────────────────────
-TARGETS = [7, 144, 9, 15, 11]
+TARGETS = [5, 183, 18, 58, 20]
 conf = CONF
 TRUTH_CSV = Path(__file__).parent / "examples.csv"
 PERIOD_MATCH_TOL = 0.05

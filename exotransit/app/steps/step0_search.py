@@ -7,7 +7,7 @@ EXAMPLE_TARGETS = [
     ("Kepler-5",  "Single planet system and one of the first five planets discovered by the Kepler spacecraft"),
     ("Kepler-183", "A two planet system discovered in 2014 in the constellation Cygnus"),
     ("Kepler-18", "A three planet system where two outer planets are in a near-perfect 2:1 resonance"),
-    ("Kepler-215", "A complex four planet system that stress-tests multi-planet masking and detection"),
+    ("Kepler-58", "A Sun-like star hosting four Neptune-sized planets"),
     ("Kepler-20",  "A five planet system where the planet sizes bizarrely alternate between large and small"),
 ]
 

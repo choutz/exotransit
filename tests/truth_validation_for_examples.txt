@@ -1,0 +1,2204 @@
+"/Users/charlie/Desktop/job search 2026/exotransit/.venv/bin/python" /Users/charlie/Desktop/job search 2026/exotransit/tests/validate_against_truth.py 
+/Users/charlie/Desktop/job search 2026/exotransit/.venv/lib/python3.13/site-packages/lightkurve/prf/__init__.py:7: UserWarning: Warning: the tpfmodel submodule is not available without oktopus installed, which requires a current version of autograd. See #1452 for details.
+  warnings.warn(
+════════════════════════════════════════════════════════════════════════
+  TARGET: Kepler-5  (1 confirmed planets in truth)
+════════════════════════════════════════════════════════════════════════
+
+  Fetching light curve (max_quarters=8)...
+Loading 'Kepler-5' from cache...
+  Points:     27,388
+  Baseline:   599.0 days
+  Cadence:    29.4 min
+  Flux min:   0.992225   max: 1.005216
+  Median err: 0.000123
+
+  Fetching stellar params from NASA Exoplanet Archive...
+INFO | exotransit.physics.stars: Querying NASA Exoplanet Archive for 'Kepler-5'
+INFO | exotransit.physics.limb_darkening: Loaded Claret 2011 LD table: 9586 rows
+INFO | exotransit.physics.limb_darkening: LD coefficients for Teff=6297K, logg=3.96, [Fe/H]=0.04: u1=0.3101±0.0123, u2=0.3094±0.0073
+INFO | exotransit.detection.bls: Running BLS on Kepler-5: period range 2–100 days, 27388 data points
+  R_star: 1.7930 R_sun  |  M_star: 1.3740 M_sun  |  Teff: 6297 K
+  u1=0.3101  u2=0.3094
+  Truth R_star (CSV): 1.7460 R_sun  (archive returned 1.7930, diff=+2.7%)
+
+  Running BLS (max_planets=5)...
+INFO | exotransit.detection.bls: BLS result: period=3.5486d, depth=0.007249, SDE=44.8, SNR=1138.5, reliable=True
+INFO | exotransit.detection.bls: Running BLS on Kepler-5: period range 2–100 days, 27388 data points
+INFO | exotransit.detection.bls: BLS result: period=13.8932d, depth=0.000200, SDE=7.1, SNR=11.1, reliable=False
+WARNING | exotransit.detection.bls: [Kepler-5] BLS candidate REJECTED — period=13.8932d, depth=199.9ppm, SDE=7.10, SNR=11.12, in_transit_pts=159, n_transits_expected=43.1
+WARNING | exotransit.detection.bls:   [Kepler-5]  TREE: sde=7.10 ≤ 9.91 — signal too weak to be reliable
+INFO | exotransit.pipeline.light_curves: Pass-2 biweight detrend: masking 1853 transit points (6.8% of baseline) across 1 planet(s)
+
+  BLS stopped at planet 2: not reliable
+    TREE: sde=7.10 ≤ 9.91 — signal too weak to be reliable
+
+  Pass-2 re-detrend: masking 1 planet(s) and re-running biweight...
+  Refined LC: 27388 points
+────────────────────────────────────────────────────────────────────────
+  PLANET 1 — Kepler-5 b  (P=3.5486d)
+────────────────────────────────────────────────────────────────────────
+  [§1 BLS OUTPUT]
+    Period:        3.54856 d
+    Duration:      3.840 h
+    Depth:         7249.0 ppm  (0.007249)
+    SDE:           44.84
+    SNR:           1138.52
+    In-transit pts: 1238  (expected ~7.8/transit × 168.8 transits)
+    Expected transits in baseline: 168.80
+    Aliases:        none
+
+    vs truth [Kepler-5 b]:
+      Period:   3.54856 d   truth=3.54847 d   err=+0.0%
+      Depth:    7249.0 ppm  truth=7251.5 ppm  err=-0.0%
+      Duration: 3.840 h    truth=4.569 h    err=-16.0%
+
+  [§2 FOLDED FLUX ANALYSIS]
+    Transit window:  ±1.92 h  (1238 in-transit, 26150 out-of-transit pts)
+    Baseline median: 1.000000  (should be ~1.0)
+    Baseline std:    350.8 ppm  (noise level)
+    Transit minimum: 0.992225
+    Implied depth (baseline - min): 7774.7 ppm
+    bls.transit_depth:              7249.0 ppm  *** DISAGREE >5%
+    *** DEPTH MISMATCH: folded says 7774.7 ppm, BLS says 7249.0 ppm
+        -> Problem is in depth computation from folded flux, not upstream in detrending
+
+    rp_init (from bls.transit_depth): 0.08514
+    rp_init (from folded flux min):   0.08817
+
+    Truth rp/R*:    0.07827  (rp^2 = 6126.5 ppm)
+    Truth depth:    7251.5 ppm
+    Folded implies: 7774.7 ppm  (err vs truth: +7.2%)
+    BLS depth:      7249.0 ppm  (err vs truth: -0.0%)
+
+  [§3 MCMC INITIALIZATION]
+    t0: center=0.00000  min=-0.00233  max=0.00180  std=0.00112
+    rp: center=0.08514  min=0.03154  max=0.17038  std=0.03597
+    b: center=0.20000  min=0.00000  max=0.78808  std=0.22760
+
+    Orbital geometry:
+      a/R_star (batman p.a):         6.0705
+      b_max for full transit:         4.9854  (= a/R* - 1 - rp)
+      Walkers with b >= a/R* (geom. invalid): 0.0%
+      Walkers with b >= 1.0 (grazing):        0.0%
+
+    Truth rp=0.07827  b=0.0750
+    rp truth in walker init range [0.03154, 0.17038]: yes
+
+    Batman at truth params [t0=0, rp=0.07827, b=0.0750]:
+      model_flux.min()  = 0.992760
+      implied depth     = 7240.0 ppm
+      truth depth (CSV) = 7251.5 ppm
+      batman vs truth:    -0.2%
+
+  [§3b BURN-IN STATE]  (running 500 burn-in steps...)
+100%|██████████| 500/500 [00:05<00:00, 87.98it/s]
+INFO | exotransit.mcmc.fit_mcmc: Running MCMC for Kepler-5, period=3.5486d, u1=0.3101, u2=0.3094 (fixed), M*=1.374 M_sun, R*=1.793 R_sun, cadence=29.4 min
+    Median walker after burn-in:  t0=-0.00536  rp=0.07850  b=0.3338
+    model_flux.min() at median walker: 0.992850  (depth=0.007150 = 7150.2 ppm)
+    data_flux.min() in MCMC window:    0.992225  (depth=0.007775 = 7774.6 ppm)
+
+    lnL at truth values:          -59507.04
+    lnL at burn-in median walker: -24527.84
+    *** lnL(truth) < lnL(burned median) by 34979.2 — LIKELIHOOD PREFERS WRONG ANSWER (data problem) ***
+
+  [§4 MCMC OUTPUT]  (n_walkers=32, n_steps=4000, n_burnin=500)
+INFO | exotransit.mcmc.fit_mcmc: Burn-in: 500 steps...
+100%|██████████| 500/500 [00:05<00:00, 85.64it/s]
+INFO | exotransit.mcmc.fit_mcmc: Production: 4000 steps...
+100%|██████████| 4000/4000 [00:47<00:00, 84.85it/s]
+INFO | exotransit.mcmc.fit_mcmc: MCMC done: rp=0.0786+0.0000-0.0000, b=0.3319, acceptance=0.349
+    rp:           0.07857  -0.00002  +0.00002
+    b:            0.3319   -0.0010   +0.0010
+    t0:           -0.00535  -0.00003  +0.00003
+    depth (rp^2): 6173.3 ppm
+    Acceptance fraction: 0.3495
+    Converged: True
+    Convergence note: τ=28, n_steps/τ=145
+
+  [§5 DERIVED VS PUBLISHED]
+    Stellar radius used: 1.7930 R_sun
+    rp_mcmc × R_star × 109.076 = 15.366 R_earth  [15.362, 15.371]
+    Period (BLS):  3.54856 d
+
+    Published (Kepler-5 b):
+      R_planet: 14.920 R_earth  ->  computed: 15.366  err: +3.0%
+      Period:   3.54847 d          ->  BLS:      3.54856  err: +0.0%
+      rp/R*:    0.07827               ->  MCMC:     0.07857  err: +0.4%
+      b:        0.0750                ->  MCMC:     0.3319  err: +342.5%
+
+  [§6 KEY DEPTH DIAGNOSTIC — where is depth lost?]
+    A) BLS transit_depth:             7249.0 ppm
+    B) 1 - min(folded flux):          7774.6 ppm  (naive, ignores baseline offset)
+    C) baseline_med - min(fold):      7774.7 ppm  (corrected)
+    D) rp_mcmc^2:                     6173.3 ppm
+    E) Truth depth:                   7251.5 ppm
+    Error vs truth:  A=-0.0%  C=+7.2%  D=-14.9%
+
+    VERDICT: All depths within 25% of truth
+    NOTE: A and C disagree by 6.8% — BLS depth calc inconsistency
+
+  [§6b POST-CONVERGENCE BATMAN CHECK]
+    Converged params: t0=-0.00535  rp=0.07857  b=0.3319
+    rp^2:                       6173.3 ppm
+    1 - batman_model.min():     7164.7 ppm
+    rp^2 vs batman: diff=16.1%  *** BATMAN NOT MATCHING rp^2 — geometry issue (grazing?)
+
+    lnL at truth values [rp=0.07827, b=0.0750]: -59507.04
+    lnL at converged    [rp=0.07857, b=0.3319]: -24540.61
+    *** lnL(truth) < lnL(converged) by 34966.4 — DATA PROBLEM: likelihood genuinely prefers the wrong params ***
+        The detrended data no longer supports the published solution.
+        SavGol has altered the flux enough that the true rp/b is a worse fit.
+
+    Binned folded flux vs batman model  (MCMC window ±7.2 h):
+    phase(h)    data_med       model   n_pts    resid(ppm)
+       -6.72    1.000009    1.000000     317        +8.6
+       -5.76    1.000020    1.000000     320       +20.2
+       -4.80    1.000029    1.000000     316       +29.0
+       -3.84    0.999999    1.000000     321        -0.6
+       -2.88    0.999934    1.000000     311       -66.2
+       -1.92    0.994444    0.994427     305       +17.2
+       -0.96    0.993027    0.993042     304       -15.8
+        0.00    0.992814    0.992840     309       -26.0
+        0.96    0.993206    0.993222     314       -16.3
+        1.92    0.996892    0.996765     311      +127.7
+        2.88    0.999976    1.000000     311       -23.6
+        3.84    1.000018    1.000000     309       +17.8
+        4.80    1.000011    1.000000     300       +11.3
+        5.76    1.000009    1.000000     299        +9.0
+        6.72    1.000030    1.000000     299       +30.0
+────────────────────────────────────────────────────────────────────────
+  Kepler-5 — DETECTION SUMMARY
+────────────────────────────────────────────────────────────────────────
+  Found 1 planet(s) | Truth has 1 confirmed
+  FOUND            Kepler-5 b            P=3.5485d  R=14.92 R_earth
+════════════════════════════════════════════════════════════════════════
+  TARGET: Kepler-183  (2 confirmed planets in truth)
+════════════════════════════════════════════════════════════════════════
+
+  Fetching light curve (max_quarters=8)...
+Loading 'Kepler-183' from cache...
+  Points:     30,326
+  Baseline:   774.4 days
+  Cadence:    29.4 min
+  Flux min:   0.998071   max: 1.001946
+  Median err: 0.000330
+
+  Fetching stellar params from NASA Exoplanet Archive...
+INFO | exotransit.physics.stars: Querying NASA Exoplanet Archive for 'Kepler-183'
+INFO | exotransit.physics.limb_darkening: LD coefficients for Teff=5888K, logg=4.50, [Fe/H]=0.11: u1=0.3912±0.0527, u2=0.2689±0.0301
+INFO | exotransit.detection.bls: Running BLS on Kepler-183: period range 2–100 days, 30326 data points
+  R_star: 0.9580 R_sun  |  M_star: 0.9900 M_sun  |  Teff: 5888 K
+  u1=0.3912  u2=0.2689
+  Truth R_star (CSV): 1.1980 R_sun  (archive returned 0.9580, diff=-20.0%)
+
+  Running BLS (max_planets=5)...
+INFO | exotransit.detection.bls: BLS result: period=11.6369d, depth=0.000950, SDE=57.2, SNR=27.8, reliable=True
+INFO | exotransit.detection.bls: Running BLS on Kepler-183: period range 2–100 days, 30326 data points
+INFO | exotransit.detection.bls: BLS result: period=5.6882d, depth=0.000742, SDE=68.1, SNR=27.9, reliable=True
+INFO | exotransit.detection.bls: Running BLS on Kepler-183: period range 2–100 days, 30326 data points
+INFO | exotransit.detection.bls: BLS result: period=2.6526d, depth=0.000435, SDE=7.1, SNR=19.0, reliable=False
+WARNING | exotransit.detection.bls: [Kepler-183] BLS candidate REJECTED — period=2.6526d, depth=435.1ppm, SDE=7.06, SNR=19.02, in_transit_pts=696, n_transits_expected=291.9
+WARNING | exotransit.detection.bls:   [Kepler-183]  TREE: sde=7.06 ≤ 9.91 — signal too weak to be reliable
+INFO | exotransit.pipeline.light_curves: Pass-2 biweight detrend: masking 1240 transit points (4.1% of baseline) across 2 planet(s)
+
+  BLS stopped at planet 3: not reliable
+    TREE: sde=7.06 ≤ 9.91 — signal too weak to be reliable
+
+  Pass-2 re-detrend: masking 2 planet(s) and re-running biweight...
+  Refined LC: 30326 points
+────────────────────────────────────────────────────────────────────────
+  PLANET 1 — Kepler-183 c  (P=11.6369d)
+────────────────────────────────────────────────────────────────────────
+  [§1 BLS OUTPUT]
+    Period:        11.63691 d
+    Duration:      2.880 h
+    Depth:         949.6 ppm  (0.000950)
+    SDE:           57.16
+    SNR:           27.75
+    In-transit pts: 315  (expected ~5.9/transit × 66.5 transits)
+    Expected transits in baseline: 66.55
+    Aliases:        none
+
+    vs truth [Kepler-183 c]:
+      Period:   11.63691 d   truth=11.63703 d   err=-0.0%
+      Depth:    949.6 ppm  truth=604.3 ppm  err=+57.1%
+      Duration: 2.880 h    truth=3.337 h    err=-13.7%
+
+  [§2 FOLDED FLUX ANALYSIS]
+    Transit window:  ±1.44 h  (315 in-transit, 30011 out-of-transit pts)
+    Baseline median: 1.000004  (should be ~1.0)
+    Baseline std:    349.2 ppm  (noise level)
+    Transit minimum: 0.998414
+    Implied depth (baseline - min): 1589.9 ppm
+    bls.transit_depth:              949.6 ppm  *** DISAGREE >5%
+    *** DEPTH MISMATCH: folded says 1589.9 ppm, BLS says 949.6 ppm
+        -> Problem is in depth computation from folded flux, not upstream in detrending
+
+    rp_init (from bls.transit_depth): 0.03082
+    rp_init (from folded flux min):   0.03987  *** DIFFER > 0.005 — init wrong from the start
+
+    Truth rp/R*:    0.02217  (rp^2 = 491.6 ppm)
+    Truth depth:    604.3 ppm
+    Folded implies: 1589.9 ppm  (err vs truth: +163.1%)
+    BLS depth:      949.6 ppm  (err vs truth: +57.1%)
+
+  [§3 MCMC INITIALIZATION]
+    t0: center=0.00000  min=-0.00233  max=0.00180  std=0.00112
+    rp: center=0.03082  min=0.01142  max=0.06167  std=0.01302
+    b: center=0.20000  min=0.00000  max=0.78808  std=0.22760
+
+    Orbital geometry:
+      a/R_star (batman p.a):         22.4827
+      b_max for full transit:         21.4518  (= a/R* - 1 - rp)
+      Walkers with b >= a/R* (geom. invalid): 0.0%
+      Walkers with b >= 1.0 (grazing):        0.0%
+
+    Truth rp=0.02217  b=0.0660
+    rp truth in walker init range [0.01142, 0.06167]: yes
+
+    Batman at truth params [t0=0, rp=0.02217, b=0.0660]:
+      model_flux.min()  = 0.999404
+      implied depth     = 595.5 ppm
+      truth depth (CSV) = 604.3 ppm
+      batman vs truth:    -1.5%
+
+  [§3b BURN-IN STATE]  (running 500 burn-in steps...)
+100%|██████████| 500/500 [00:02<00:00, 226.10it/s]
+INFO | exotransit.mcmc.fit_mcmc: Running MCMC for Kepler-183, period=11.6369d, u1=0.3912, u2=0.2689 (fixed), M*=0.990 M_sun, R*=0.958 R_sun, cadence=29.4 min
+    Median walker after burn-in:  t0=0.00854  rp=0.02191  b=0.6220
+    model_flux.min() at median walker: 0.999475  (depth=0.000525 = 525.4 ppm)
+    data_flux.min() in MCMC window:    0.998414  (depth=0.001586 = 1586.3 ppm)
+
+    lnL at truth values:          -1013.40
+    lnL at burn-in median walker: -918.46
+    *** lnL(truth) < lnL(burned median) by 94.9 — LIKELIHOOD PREFERS WRONG ANSWER (data problem) ***
+
+  [§4 MCMC OUTPUT]  (n_walkers=32, n_steps=4000, n_burnin=500)
+INFO | exotransit.mcmc.fit_mcmc: Burn-in: 500 steps...
+  0%|          | 0/500 [00:00<?, ?it/s]/Users/charlie/Desktop/job search 2026/exotransit/.venv/lib/python3.13/site-packages/emcee/moves/red_blue.py:99: RuntimeWarning: invalid value encountered in scalar subtract
+  lnpdiff = f + nlp - state.log_prob[j]
+100%|██████████| 500/500 [00:02<00:00, 225.95it/s]
+INFO | exotransit.mcmc.fit_mcmc: Production: 4000 steps...
+100%|██████████| 4000/4000 [00:18<00:00, 220.90it/s]
+    rp:           0.02361  -0.00047  +0.00045
+    b:            0.5965   -0.0239   +0.0236
+    t0:           0.00937  -0.00154  +0.00117
+    depth (rp^2): 557.4 ppm
+    Acceptance fraction: 0.3427
+    Converged: True
+    Convergence note: τ=33, n_steps/τ=122
+
+  [§5 DERIVED VS PUBLISHED]
+    Stellar radius used: 0.9580 R_sun
+    rp_mcmc × R_star × 109.076 = 2.467 R_earth  [2.418, 2.514]
+    Period (BLS):  11.63691 d
+
+    Published (Kepler-183 c):
+      R_planet: 2.900 R_earth  ->  computed: 2.467  err: -14.9%
+      Period:   11.63703 d          ->  BLS:      11.63691  err: -0.0%
+      rp/R*:    0.02217               ->  MCMC:     0.02361  err: +6.5%
+      b:        0.0660                ->  MCMC:     0.5965  err: +803.8%
+
+  [§6 KEY DEPTH DIAGNOSTIC — where is depth lost?]
+    A) BLS transit_depth:              949.6 ppm
+    B) 1 - min(folded flux):          1586.3 ppm  (naive, ignores baseline offset)
+    C) baseline_med - min(fold):      1589.9 ppm  (corrected)
+    D) rp_mcmc^2:                      557.4 ppm
+    E) Truth depth:                    604.3 ppm
+    Error vs truth:  A=+57.1%  C=+163.1%  D=-7.8%
+
+    VERDICT: All depths within 25% of truth
+    NOTE: A and C disagree by 40.3% — BLS depth calc inconsistency
+
+  [§6b POST-CONVERGENCE BATMAN CHECK]
+    Converged params: t0=0.00937  rp=0.02361  b=0.5965
+    rp^2:                        557.4 ppm
+    1 - batman_model.min():      616.4 ppm
+    rp^2 vs batman: diff=10.6%  *** BATMAN NOT MATCHING rp^2 — geometry issue (grazing?)
+
+    lnL at truth values [rp=0.02217, b=0.0660]: -1013.40
+    lnL at converged    [rp=0.02361, b=0.5965]: -929.33
+    *** lnL(truth) < lnL(converged) by 84.1 — DATA PROBLEM: likelihood genuinely prefers the wrong params ***
+        The detrended data no longer supports the published solution.
+        SavGol has altered the flux enough that the true rp/b is a worse fit.
+
+    Binned folded flux vs batman model  (MCMC window ±7.2 h):
+    phase(h)    data_med       model   n_pts    resid(ppm)
+       -6.71    1.000036    1.000000      99       +36.3
+       -5.75    1.000071    1.000000      99       +70.6
+       -4.79    1.000096    1.000000      99       +96.5
+       -3.83    1.000029    1.000000     100       +29.2
+       -2.87    1.000081    1.000000     103       +80.6
+       -1.92    1.000087    1.000000     104       +87.1
+       -0.96    0.999610    0.999486     107      +123.9
+        0.00    0.999565    0.999386     105      +178.8
+        0.96    0.999522    0.999416     103      +105.7
+        1.92    0.999995    1.000000     103        -5.3
+        2.88    1.000005    1.000000     102        +5.0
+        3.84    1.000100    1.000000     102      +100.4
+        4.80    1.000052    1.000000     104       +52.2
+        5.76    1.000021    1.000000     102       +21.4
+        6.72    1.000115    1.000000     102      +114.9
+────────────────────────────────────────────────────────────────────────
+  PLANET 2 — Kepler-183 b  (P=5.6882d)
+────────────────────────────────────────────────────────────────────────
+  [§1 BLS OUTPUT]
+    Period:        5.68818 d
+    Duration:      2.400 h
+    Depth:         742.2 ppm  (0.000742)
+    SDE:           68.14
+    SNR:           27.93
+    In-transit pts: 522  (expected ~4.9/transit × 136.1 transits)
+    Expected transits in baseline: 136.14
+    Aliases:        none
+
+    vs truth [Kepler-183 b]:
+      Period:   5.68818 d   truth=5.68799 d   err=+0.0%
+      Depth:    742.2 ppm  truth=476.4 ppm  err=+55.8%
+      Duration: 2.400 h    truth=2.268 h    err=+5.8%
+
+  [§2 FOLDED FLUX ANALYSIS]
+    Transit window:  ±1.20 h  (522 in-transit, 29804 out-of-transit pts)
+    Baseline median: 1.000002  (should be ~1.0)
+    Baseline std:    343.0 ppm  (noise level)
+    Transit minimum: 0.998443
+    Implied depth (baseline - min): 1558.1 ppm
+    bls.transit_depth:              742.2 ppm  *** DISAGREE >5%
+    *** DEPTH MISMATCH: folded says 1558.1 ppm, BLS says 742.2 ppm
+        -> Problem is in depth computation from folded flux, not upstream in detrending
+
+    rp_init (from bls.transit_depth): 0.02724
+    rp_init (from folded flux min):   0.03947  *** DIFFER > 0.005 — init wrong from the start
+
+    Truth rp/R*:    0.02109  (rp^2 = 444.9 ppm)
+    Truth depth:    476.4 ppm
+    Folded implies: 1558.1 ppm  (err vs truth: +227.1%)
+    BLS depth:      742.2 ppm  (err vs truth: +55.8%)
+
+  [§3 MCMC INITIALIZATION]
+    t0: center=0.00000  min=-0.00233  max=0.00180  std=0.00112
+    rp: center=0.02724  min=0.01009  max=0.05452  std=0.01151
+    b: center=0.20000  min=0.00000  max=0.78808  std=0.22760
+
+    Orbital geometry:
+      a/R_star (batman p.a):         13.9510
+      b_max for full transit:         12.9237  (= a/R* - 1 - rp)
+      Walkers with b >= a/R* (geom. invalid): 0.0%
+      Walkers with b >= 1.0 (grazing):        0.0%
+
+    Truth rp=0.02109  b=0.6630
+    rp truth in walker init range [0.01009, 0.05452]: yes
+
+    Batman at truth params [t0=0, rp=0.02109, b=0.6630]:
+      model_flux.min()  = 0.999523
+      implied depth     = 477.1 ppm
+      truth depth (CSV) = 476.4 ppm
+      batman vs truth:    +0.1%
+
+  [§3b BURN-IN STATE]  (running 500 burn-in steps...)
+INFO | exotransit.mcmc.fit_mcmc: MCMC done: rp=0.0236+0.0004-0.0005, b=0.5965, acceptance=0.343
+100%|██████████| 500/500 [00:03<00:00, 150.16it/s]
+    Median walker after burn-in:  t0=0.00152  rp=0.01940  b=0.7375
+    model_flux.min() at median walker: 0.999614  (depth=0.000386 = 385.5 ppm)
+    data_flux.min() in MCMC window:    0.998443  (depth=0.001557 = 1556.6 ppm)
+
+    lnL at truth values:          -1797.11
+    lnL at burn-in median walker: -1771.64
+    *** lnL(truth) < lnL(burned median) by 25.5 — LIKELIHOOD PREFERS WRONG ANSWER (data problem) ***
+
+  [§4 MCMC OUTPUT]  (n_walkers=32, n_steps=4000, n_burnin=500)
+INFO | exotransit.mcmc.fit_mcmc: Running MCMC for Kepler-183, period=5.6882d, u1=0.3912, u2=0.2689 (fixed), M*=0.990 M_sun, R*=0.958 R_sun, cadence=29.4 min
+INFO | exotransit.mcmc.fit_mcmc: Burn-in: 500 steps...
+100%|██████████| 500/500 [00:03<00:00, 134.13it/s]
+INFO | exotransit.mcmc.fit_mcmc: Production: 4000 steps...
+100%|██████████| 4000/4000 [00:27<00:00, 144.61it/s]
+    rp:           0.02028  -0.00045  +0.00046
+    b:            0.6731   -0.0226   +0.0212
+    t0:           -0.00052  -0.00121  +0.00122
+    depth (rp^2): 411.4 ppm
+    Acceptance fraction: 0.3463
+    Converged: True
+    Convergence note: τ=29, n_steps/τ=139
+
+  [§5 DERIVED VS PUBLISHED]
+    Stellar radius used: 0.9580 R_sun
+    rp_mcmc × R_star × 109.076 = 2.119 R_earth  [2.072, 2.167]
+    Period (BLS):  5.68818 d
+
+    Published (Kepler-183 b):
+      R_planet: 2.760 R_earth  ->  computed: 2.119  err: -23.2%
+      Period:   5.68799 d          ->  BLS:      5.68818  err: +0.0%
+      rp/R*:    0.02109               ->  MCMC:     0.02028  err: -3.8%
+      b:        0.6630                ->  MCMC:     0.6731  err: +1.5%
+
+  [§6 KEY DEPTH DIAGNOSTIC — where is depth lost?]
+    A) BLS transit_depth:              742.2 ppm
+    B) 1 - min(folded flux):          1556.6 ppm  (naive, ignores baseline offset)
+    C) baseline_med - min(fold):      1558.1 ppm  (corrected)
+    D) rp_mcmc^2:                      411.4 ppm
+    E) Truth depth:                    476.4 ppm
+    Error vs truth:  A=+55.8%  C=+227.1%  D=-13.6%
+
+    VERDICT: All depths within 25% of truth
+    NOTE: A and C disagree by 52.4% — BLS depth calc inconsistency
+
+  [§6b POST-CONVERGENCE BATMAN CHECK]
+    Converged params: t0=-0.00052  rp=0.02028  b=0.6731
+    rp^2:                        411.4 ppm
+    1 - batman_model.min():      438.8 ppm
+    rp^2 vs batman: diff=6.7%  *** BATMAN NOT MATCHING rp^2 — geometry issue (grazing?)
+
+    lnL at truth values [rp=0.02109, b=0.6630]: -1797.11
+    lnL at converged    [rp=0.02028, b=0.6731]: -1782.37
+    *** lnL(truth) < lnL(converged) by 14.7 — DATA PROBLEM: likelihood genuinely prefers the wrong params ***
+        The detrended data no longer supports the published solution.
+        SavGol has altered the flux enough that the true rp/b is a worse fit.
+
+    Binned folded flux vs batman model  (MCMC window ±7.2 h):
+    phase(h)    data_med       model   n_pts    resid(ppm)
+       -6.72    1.000036    1.000000     213       +36.3
+       -5.76    1.000062    1.000000     216       +62.1
+       -4.80    1.000016    1.000000     211       +16.4
+       -3.84    1.000065    1.000000     212       +64.8
+       -2.88    1.000036    1.000000     211       +36.0
+       -1.92    1.000000    1.000000     206        -0.2
+       -0.97    0.999808    0.999661     212      +146.9
+       -0.01    0.999642    0.999561     206       +80.4
+        0.95    0.999757    0.999665     210       +92.0
+        1.91    1.000062    1.000000     209       +61.8
+        2.87    1.000014    1.000000     213       +13.9
+        3.83    1.000051    1.000000     211       +51.3
+        4.79    1.000046    1.000000     209       +46.0
+        5.75    1.000066    1.000000     211       +66.1
+        6.71    1.000076    1.000000     207       +76.0
+────────────────────────────────────────────────────────────────────────
+  Kepler-183 — DETECTION SUMMARY
+────────────────────────────────────────────────────────────────────────
+  Found 2 planet(s) | Truth has 2 confirmed
+  FOUND            Kepler-183 b          P=5.6880d  R=2.76 R_earth
+  FOUND            Kepler-183 c          P=11.6370d  R=2.90 R_earth
+════════════════════════════════════════════════════════════════════════
+  TARGET: Kepler-18  (3 confirmed planets in truth)
+════════════════════════════════════════════════════════════════════════
+
+  Fetching light curve (max_quarters=8)...
+Loading 'Kepler-18' from cache...
+INFO | exotransit.mcmc.fit_mcmc: MCMC done: rp=0.0203+0.0005-0.0005, b=0.6731, acceptance=0.346
+INFO | exotransit.physics.stars: Querying NASA Exoplanet Archive for 'Kepler-18'
+  Points:     27,380
+  Baseline:   599.0 days
+  Cadence:    29.4 min
+  Flux min:   0.994526   max: 1.002421
+  Median err: 0.000135
+
+  Fetching stellar params from NASA Exoplanet Archive...
+INFO | exotransit.physics.limb_darkening: LD coefficients for Teff=5345K, logg=4.31, [Fe/H]=0.19: u1=0.4984±0.0803, u2=0.2017±0.0548
+INFO | exotransit.detection.bls: Running BLS on Kepler-18: period range 2–100 days, 27380 data points
+  R_star: 1.1080 R_sun  |  M_star: 0.9720 M_sun  |  Teff: 5345 K
+  u1=0.4984  u2=0.2017
+  Truth R_star (CSV): 1.0550 R_sun  (archive returned 1.1080, diff=+5.0%)
+
+  Running BLS (max_planets=5)...
+INFO | exotransit.detection.bls: BLS result: period=7.6418d, depth=0.002626, SDE=39.6, SNR=218.9, reliable=True
+INFO | exotransit.detection.bls: Running BLS on Kepler-18: period range 2–100 days, 27380 data points
+INFO | exotransit.detection.bls: BLS result: period=14.8604d, depth=0.003261, SDE=56.7, SNR=196.0, reliable=True
+INFO | exotransit.detection.bls: Running BLS on Kepler-18: period range 2–100 days, 27380 data points
+INFO | exotransit.detection.bls: BLS result: period=3.5047d, depth=0.000418, SDE=23.4, SNR=41.2, reliable=True
+INFO | exotransit.detection.bls: Running BLS on Kepler-18: period range 2–100 days, 27380 data points
+
+  BLS stopped at planet 4: not reliable
+    TREE: sde=11.24 in (9.91, 15.12], failed n_transits_expected > 13.75 and duration_h ≤ 7.92 (n_transits=7.8, duration_h=2.40)
+
+  Pass-2 re-detrend: masking 3 planet(s) and re-running biweight...
+INFO | exotransit.detection.bls: BLS result: period=76.5830d, depth=0.003142, SDE=11.2, SNR=52.7, reliable=False
+WARNING | exotransit.detection.bls: [Kepler-18] BLS candidate REJECTED — period=76.5830d, depth=3141.9ppm, SDE=11.24, SNR=52.66, in_transit_pts=19, n_transits_expected=7.8
+WARNING | exotransit.detection.bls:   [Kepler-18]  TREE: sde=11.24 in (9.91, 15.12], failed n_transits_expected > 13.75 and duration_h ≤ 7.92 (n_transits=7.8, duration_h=2.40)
+INFO | exotransit.pipeline.light_curves: Pass-2 biweight detrend: masking 1896 transit points (6.9% of baseline) across 3 planet(s)
+  Refined LC: 27380 points
+────────────────────────────────────────────────────────────────────────
+  PLANET 1 — Kepler-18 c  (P=7.6418d)
+────────────────────────────────────────────────────────────────────────
+  [§1 BLS OUTPUT]
+    Period:        7.64185 d
+    Duration:      2.880 h
+    Depth:         2626.1 ppm  (0.002626)
+    SDE:           39.56
+    SNR:           218.90
+    In-transit pts: 444  (expected ~5.9/transit × 78.4 transits)
+    Expected transits in baseline: 78.39
+    Aliases:        none
+
+    vs truth [Kepler-18 c]:
+      Period:   7.64185 d   truth=7.64157 d   err=+0.0%
+      Depth:    2626.1 ppm  truth=2269.7 ppm  err=+15.7%
+      Duration: 2.880 h    truth=3.410 h    err=-15.5%
+
+  [§2 FOLDED FLUX ANALYSIS]
+    Transit window:  ±1.44 h  (444 in-transit, 26936 out-of-transit pts)
+    Baseline median: 0.999999  (should be ~1.0)
+    Baseline std:    325.5 ppm  (noise level)
+    Transit minimum: 0.994526
+    Implied depth (baseline - min): 5472.5 ppm
+    bls.transit_depth:              2626.1 ppm  *** DISAGREE >5%
+    *** DEPTH MISMATCH: folded says 5472.5 ppm, BLS says 2626.1 ppm
+        -> Problem is in depth computation from folded flux, not upstream in detrending
+
+    rp_init (from bls.transit_depth): 0.05125
+    rp_init (from folded flux min):   0.07398  *** DIFFER > 0.005 — init wrong from the start
+
+    Truth rp/R*:    0.04263  (rp^2 = 1817.1 ppm)
+    Truth depth:    2269.7 ppm
+    Folded implies: 5472.5 ppm  (err vs truth: +141.1%)
+    BLS depth:      2626.1 ppm  (err vs truth: +15.7%)
+
+  [§3 MCMC INITIALIZATION]
+    t0: center=0.00000  min=-0.00233  max=0.00180  std=0.00112
+    rp: center=0.05125  min=0.01898  max=0.10255  std=0.02165
+    b: center=0.20000  min=0.00000  max=0.78808  std=0.22760
+
+    Orbital geometry:
+      a/R_star (batman p.a):         14.5968
+      b_max for full transit:         13.5455  (= a/R* - 1 - rp)
+      Walkers with b >= a/R* (geom. invalid): 0.0%
+      Walkers with b >= 1.0 (grazing):        0.0%
+
+    Truth rp=0.04263  b=0.0270
+    rp truth in walker init range [0.01898, 0.10255]: yes
+
+    Batman at truth params [t0=0, rp=0.04263, b=0.0270]:
+      model_flux.min()  = 0.997730
+      implied depth     = 2269.7 ppm
+      truth depth (CSV) = 2269.7 ppm
+      batman vs truth:    -0.0%
+
+  [§3b BURN-IN STATE]  (running 500 burn-in steps...)
+100%|██████████| 500/500 [00:02<00:00, 169.94it/s]
+INFO | exotransit.mcmc.fit_mcmc: Running MCMC for Kepler-18, period=7.6418d, u1=0.4984, u2=0.2017 (fixed), M*=0.972 M_sun, R*=1.108 R_sun, cadence=29.4 min
+    Median walker after burn-in:  t0=-0.00410  rp=0.04466  b=0.5448
+    model_flux.min() at median walker: 0.997723  (depth=0.002277 = 2277.4 ppm)
+    data_flux.min() in MCMC window:    0.994526  (depth=0.005474 = 5473.5 ppm)
+
+    lnL at truth values:          -10596.93
+    lnL at burn-in median walker: -6311.07
+    *** lnL(truth) < lnL(burned median) by 4285.9 — LIKELIHOOD PREFERS WRONG ANSWER (data problem) ***
+
+  [§4 MCMC OUTPUT]  (n_walkers=32, n_steps=4000, n_burnin=500)
+INFO | exotransit.mcmc.fit_mcmc: Burn-in: 500 steps...
+100%|██████████| 500/500 [00:02<00:00, 166.80it/s]
+INFO | exotransit.mcmc.fit_mcmc: Production: 4000 steps...
+100%|██████████| 4000/4000 [00:24<00:00, 162.67it/s]
+    rp:           0.04479  -0.00008  +0.00008
+    b:            0.5417   -0.0029   +0.0028
+    t0:           -0.00412  -0.00014  +0.00014
+    depth (rp^2): 2006.1 ppm
+    Acceptance fraction: 0.3513
+    Converged: True
+    Convergence note: τ=29, n_steps/τ=139
+
+  [§5 DERIVED VS PUBLISHED]
+    Stellar radius used: 1.1080 R_sun
+    rp_mcmc × R_star × 109.076 = 5.413 R_earth  [5.403, 5.423]
+    Period (BLS):  7.64185 d
+
+    Published (Kepler-18 c):
+      R_planet: 4.910 R_earth  ->  computed: 5.413  err: +10.2%
+      Period:   7.64157 d          ->  BLS:      7.64185  err: +0.0%
+      rp/R*:    0.04263               ->  MCMC:     0.04479  err: +5.1%
+      b:        0.0270                ->  MCMC:     0.5417  err: +1906.4%
+
+  [§6 KEY DEPTH DIAGNOSTIC — where is depth lost?]
+    A) BLS transit_depth:             2626.1 ppm
+    B) 1 - min(folded flux):          5473.5 ppm  (naive, ignores baseline offset)
+    C) baseline_med - min(fold):      5472.5 ppm  (corrected)
+    D) rp_mcmc^2:                     2006.1 ppm
+    E) Truth depth:                   2269.7 ppm
+    Error vs truth:  A=+15.7%  C=+141.1%  D=-11.6%
+
+    VERDICT: All depths within 25% of truth
+    NOTE: A and C disagree by 52.0% — BLS depth calc inconsistency
+
+  [§6b POST-CONVERGENCE BATMAN CHECK]
+    Converged params: t0=-0.00412  rp=0.04479  b=0.5417
+    rp^2:                       2006.1 ppm
+    1 - batman_model.min():     2293.7 ppm
+    rp^2 vs batman: diff=14.3%  *** BATMAN NOT MATCHING rp^2 — geometry issue (grazing?)
+
+    lnL at truth values [rp=0.04263, b=0.0270]: -10596.93
+    lnL at converged    [rp=0.04479, b=0.5417]: -6313.94
+    *** lnL(truth) < lnL(converged) by 4283.0 — DATA PROBLEM: likelihood genuinely prefers the wrong params ***
+        The detrended data no longer supports the published solution.
+        SavGol has altered the flux enough that the true rp/b is a worse fit.
+
+    Binned folded flux vs batman model  (MCMC window ±7.2 h):
+    phase(h)    data_med       model   n_pts    resid(ppm)
+       -6.72    1.000014    1.000000     151       +13.9
+       -5.76    1.000002    1.000000     149        +1.9
+       -4.80    1.000035    1.000000     151       +35.4
+       -3.84    1.000036    1.000000     150       +35.7
+       -2.88    1.000010    1.000000     148        +9.8
+       -1.92    0.999782    1.000000     140      -218.0
+       -0.96    0.997936    0.997880     142       +55.5
+        0.00    0.997748    0.997708     149       +39.9
+        0.96    0.998057    0.997991     149       +66.0
+        1.92    0.999936    1.000000     148       -63.6
+        2.88    1.000016    1.000000     145       +16.3
+        3.84    1.000002    1.000000     135        +2.0
+        4.80    1.000017    1.000000     144       +17.5
+        5.76    0.999993    1.000000     145        -6.8
+        6.72    1.000008    1.000000     145        +7.8
+────────────────────────────────────────────────────────────────────────
+  PLANET 2 — Kepler-18 d  (P=14.8604d)
+────────────────────────────────────────────────────────────────────────
+  [§1 BLS OUTPUT]
+    Period:        14.86037 d
+    Duration:      2.880 h
+    Depth:         3260.6 ppm  (0.003261)
+    SDE:           56.70
+    SNR:           196.01
+    In-transit pts: 230  (expected ~5.9/transit × 40.3 transits)
+    Expected transits in baseline: 40.31
+    Aliases:        none
+
+    vs truth [Kepler-18 d]:
+      Period:   14.86037 d   truth=14.85891 d   err=+0.0%
+      Depth:    3260.6 ppm  truth=3269.0 ppm  err=-0.3%
+      Duration: 2.880 h    truth=3.525 h    err=-18.3%
+
+  [§2 FOLDED FLUX ANALYSIS]
+    Transit window:  ±1.44 h  (230 in-transit, 27150 out-of-transit pts)
+    Baseline median: 0.999997  (should be ~1.0)
+    Baseline std:    191.3 ppm  (noise level)
+    Transit minimum: 0.996495
+    Implied depth (baseline - min): 3501.7 ppm
+    bls.transit_depth:              3260.6 ppm  *** DISAGREE >5%
+    *** DEPTH MISMATCH: folded says 3501.7 ppm, BLS says 3260.6 ppm
+        -> Problem is in depth computation from folded flux, not upstream in detrending
+
+    rp_init (from bls.transit_depth): 0.05710
+    rp_init (from folded flux min):   0.05918
+
+    Truth rp/R*:    0.05159  (rp^2 = 2661.5 ppm)
+    Truth depth:    3269.0 ppm
+    Folded implies: 3501.7 ppm  (err vs truth: +7.1%)
+    BLS depth:      3260.6 ppm  (err vs truth: -0.3%)
+
+  [§3 MCMC INITIALIZATION]
+    t0: center=0.00000  min=-0.00233  max=0.00180  std=0.00112
+    rp: center=0.05710  min=0.02115  max=0.11427  std=0.02412
+    b: center=0.20000  min=0.00000  max=0.78808  std=0.22760
+
+    Orbital geometry:
+      a/R_star (batman p.a):         22.7411
+      b_max for full transit:         21.6840  (= a/R* - 1 - rp)
+      Walkers with b >= a/R* (geom. invalid): 0.0%
+      Walkers with b >= 1.0 (grazing):        0.0%
+
+    Truth rp=0.05159  b=0.2550
+    rp truth in walker init range [0.02115, 0.11427]: yes
+
+    Batman at truth params [t0=0, rp=0.05159, b=0.2550]:
+      model_flux.min()  = 0.996731
+      implied depth     = 3269.1 ppm
+      truth depth (CSV) = 3269.0 ppm
+      batman vs truth:    +0.0%
+
+  [§3b BURN-IN STATE]  (running 500 burn-in steps...)
+INFO | exotransit.mcmc.fit_mcmc: MCMC done: rp=0.0448+0.0001-0.0001, b=0.5417, acceptance=0.351
+100%|██████████| 500/500 [00:03<00:00, 151.65it/s]
+INFO | exotransit.mcmc.fit_mcmc: Running MCMC for Kepler-18, period=14.8604d, u1=0.4984, u2=0.2017 (fixed), M*=0.972 M_sun, R*=1.108 R_sun, cadence=29.4 min
+    Median walker after burn-in:  t0=0.00706  rp=0.05195  b=0.7387
+    model_flux.min() at median walker: 0.997252  (depth=0.002748 = 2748.3 ppm)
+    data_flux.min() in MCMC window:    0.996495  (depth=0.003505 = 3505.2 ppm)
+
+    lnL at truth values:          -24644.55
+    lnL at burn-in median walker: -10039.35
+    *** lnL(truth) < lnL(burned median) by 14605.2 — LIKELIHOOD PREFERS WRONG ANSWER (data problem) ***
+
+  [§4 MCMC OUTPUT]  (n_walkers=32, n_steps=4000, n_burnin=500)
+INFO | exotransit.mcmc.fit_mcmc: Burn-in: 500 steps...
+100%|██████████| 500/500 [00:04<00:00, 117.99it/s]
+INFO | exotransit.mcmc.fit_mcmc: Production: 4000 steps...
+100%|██████████| 4000/4000 [00:22<00:00, 176.04it/s]
+    rp:           0.05458  -0.00011  +0.00012
+    b:            0.7253   -0.0018   +0.0018
+    t0:           0.00871  -0.00016  +0.00016
+    depth (rp^2): 2979.4 ppm
+    Acceptance fraction: 0.3518
+    Converged: True
+    Convergence note: τ=27, n_steps/τ=146
+
+  [§5 DERIVED VS PUBLISHED]
+    Stellar radius used: 1.1080 R_sun
+    rp_mcmc × R_star × 109.076 = 6.597 R_earth  [6.583, 6.611]
+    Period (BLS):  14.86037 d
+
+    Published (Kepler-18 d):
+      R_planet: 5.940 R_earth  ->  computed: 6.597  err: +11.1%
+      Period:   14.85891 d          ->  BLS:      14.86037  err: +0.0%
+      rp/R*:    0.05159               ->  MCMC:     0.05458  err: +5.8%
+      b:        0.2550                ->  MCMC:     0.7253  err: +184.4%
+
+  [§6 KEY DEPTH DIAGNOSTIC — where is depth lost?]
+    A) BLS transit_depth:             3260.6 ppm
+    B) 1 - min(folded flux):          3505.2 ppm  (naive, ignores baseline offset)
+    C) baseline_med - min(fold):      3501.7 ppm  (corrected)
+    D) rp_mcmc^2:                     2979.4 ppm
+    E) Truth depth:                   3269.0 ppm
+    Error vs truth:  A=-0.3%  C=+7.1%  D=-8.9%
+
+    VERDICT: All depths within 25% of truth
+    NOTE: A and C disagree by 6.9% — BLS depth calc inconsistency
+
+  [§6b POST-CONVERGENCE BATMAN CHECK]
+    Converged params: t0=0.00871  rp=0.05458  b=0.7253
+    rp^2:                       2979.4 ppm
+    1 - batman_model.min():     3067.4 ppm
+    rp^2 vs batman: diff=3.0%  *** BATMAN NOT MATCHING rp^2 — geometry issue (grazing?)
+
+    lnL at truth values [rp=0.05159, b=0.2550]: -24644.55
+    lnL at converged    [rp=0.05458, b=0.7253]: -10767.80
+    *** lnL(truth) < lnL(converged) by 13876.8 — DATA PROBLEM: likelihood genuinely prefers the wrong params ***
+        The detrended data no longer supports the published solution.
+        SavGol has altered the flux enough that the true rp/b is a worse fit.
+
+    Binned folded flux vs batman model  (MCMC window ±7.2 h):
+    phase(h)    data_med       model   n_pts    resid(ppm)
+       -6.72    1.000038    1.000000      76       +38.4
+       -5.76    1.000005    1.000000      76        +4.5
+       -4.80    1.000079    1.000000      74       +79.0
+       -3.84    1.000064    1.000000      74       +64.1
+       -2.88    1.000006    1.000000      76        +5.7
+       -1.92    0.999884    1.000000      75      -116.3
+       -0.96    0.997362    0.997390      76       -27.4
+        0.00    0.996908    0.996944      77       -36.9
+        0.96    0.997071    0.997099      77       -28.1
+        1.92    0.999679    0.999083      75      +595.8
+        2.88    0.999996    1.000000      75        -4.0
+        3.84    1.000022    1.000000      74       +22.4
+        4.80    1.000046    1.000000      71       +45.6
+        5.76    1.000019    1.000000      75       +18.6
+        6.72    1.000030    1.000000      74       +29.9
+────────────────────────────────────────────────────────────────────────
+  PLANET 3 — Kepler-18 b  (P=3.5047d)
+────────────────────────────────────────────────────────────────────────
+  [§1 BLS OUTPUT]
+    Period:        3.50469 d
+    Duration:      1.920 h
+    Depth:         418.4 ppm  (0.000418)
+    SDE:           23.44
+    SNR:           41.23
+    In-transit pts: 618  (expected ~3.9/transit × 170.9 transits)
+    Expected transits in baseline: 170.92
+    Aliases:        none
+
+    vs truth [Kepler-18 b]:
+      Period:   3.50469 d   truth=3.50469 d   err=-0.0%
+      Depth:    418.4 ppm  truth=315.1 ppm  err=+32.8%
+      Duration: 1.920 h    truth=1.981 h    err=-3.1%
+
+  [§2 FOLDED FLUX ANALYSIS]
+    Transit window:  ±0.96 h  (618 in-transit, 26762 out-of-transit pts)
+    Baseline median: 0.999998  (should be ~1.0)
+    Baseline std:    166.1 ppm  (noise level)
+    Transit minimum: 0.999241
+    Implied depth (baseline - min): 757.4 ppm
+    bls.transit_depth:              418.4 ppm  *** DISAGREE >5%
+    *** DEPTH MISMATCH: folded says 757.4 ppm, BLS says 418.4 ppm
+        -> Problem is in depth computation from folded flux, not upstream in detrending
+
+    rp_init (from bls.transit_depth): 0.02045
+    rp_init (from folded flux min):   0.02752  *** DIFFER > 0.005 — init wrong from the start
+
+    Truth rp/R*:    0.01764  (rp^2 = 311.3 ppm)
+    Truth depth:    315.1 ppm
+    Folded implies: 757.4 ppm  (err vs truth: +140.4%)
+    BLS depth:      418.4 ppm  (err vs truth: +32.8%)
+
+  [§3 MCMC INITIALIZATION]
+    t0: center=0.00000  min=-0.00233  max=0.00180  std=0.00112
+    rp: center=0.02045  min=0.00758  max=0.04093  std=0.00864
+    b: center=0.20000  min=0.00000  max=0.78808  std=0.22760
+
+    Orbital geometry:
+      a/R_star (batman p.a):         8.6808
+      b_max for full transit:         7.6603  (= a/R* - 1 - rp)
+      Walkers with b >= a/R* (geom. invalid): 0.0%
+      Walkers with b >= 1.0 (grazing):        0.0%
+
+    Truth rp=0.01764  b=0.7410
+    rp truth in walker init range [0.00758, 0.04093]: yes
+
+    Batman at truth params [t0=0, rp=0.01764, b=0.7410]:
+      model_flux.min()  = 0.999683
+      implied depth     = 316.8 ppm
+      truth depth (CSV) = 315.1 ppm
+      batman vs truth:    +0.5%
+
+  [§3b BURN-IN STATE]  (running 500 burn-in steps...)
+INFO | exotransit.mcmc.fit_mcmc: MCMC done: rp=0.0546+0.0001-0.0001, b=0.7253, acceptance=0.352
+100%|██████████| 500/500 [00:07<00:00, 65.15it/s]
+INFO | exotransit.mcmc.fit_mcmc: Running MCMC for Kepler-18, period=3.5047d, u1=0.4984, u2=0.2017 (fixed), M*=0.972 M_sun, R*=1.108 R_sun, cadence=29.4 min
+    Median walker after burn-in:  t0=-0.00090  rp=0.01546  b=0.7474
+    model_flux.min() at median walker: 0.999758  (depth=0.000242 = 241.8 ppm)
+    data_flux.min() in MCMC window:    0.998407  (depth=0.001593 = 1593.1 ppm)
+
+    lnL at truth values:          -3341.29
+    lnL at burn-in median walker: -3263.34
+    *** lnL(truth) < lnL(burned median) by 78.0 — LIKELIHOOD PREFERS WRONG ANSWER (data problem) ***
+
+  [§4 MCMC OUTPUT]  (n_walkers=32, n_steps=4000, n_burnin=500)
+INFO | exotransit.mcmc.fit_mcmc: Burn-in: 500 steps...
+100%|██████████| 500/500 [00:08<00:00, 61.49it/s]
+INFO | exotransit.mcmc.fit_mcmc: Production: 4000 steps...
+100%|██████████| 4000/4000 [00:40<00:00, 98.67it/s] 
+INFO | exotransit.mcmc.fit_mcmc: MCMC done: rp=0.0178+0.0002-0.0002, b=0.7071, acceptance=0.346
+INFO | exotransit.physics.stars: Querying NASA Exoplanet Archive for 'Kepler-58'
+    rp:           0.01782  -0.00018  +0.00018
+    b:            0.7071   -0.0073   +0.0055
+    t0:           0.00012  -0.00045  +0.00034
+    depth (rp^2): 317.6 ppm
+    Acceptance fraction: 0.3462
+    Converged: True
+    Convergence note: τ=29, n_steps/τ=136
+
+  [§5 DERIVED VS PUBLISHED]
+    Stellar radius used: 1.1080 R_sun
+    rp_mcmc × R_star × 109.076 = 2.154 R_earth  [2.132, 2.175]
+    Period (BLS):  3.50469 d
+
+    Published (Kepler-18 b):
+      R_planet: 2.030 R_earth  ->  computed: 2.154  err: +6.1%
+      Period:   3.50469 d          ->  BLS:      3.50469  err: -0.0%
+      rp/R*:    0.01764               ->  MCMC:     0.01782  err: +1.0%
+      b:        0.7410                ->  MCMC:     0.7071  err: -4.6%
+
+  [§6 KEY DEPTH DIAGNOSTIC — where is depth lost?]
+    A) BLS transit_depth:              418.4 ppm
+    B) 1 - min(folded flux):           759.4 ppm  (naive, ignores baseline offset)
+    C) baseline_med - min(fold):       757.4 ppm  (corrected)
+    D) rp_mcmc^2:                      317.6 ppm
+    E) Truth depth:                    315.1 ppm
+    Error vs truth:  A=+32.8%  C=+140.4%  D=+0.8%
+
+    VERDICT: All depths within 25% of truth
+    NOTE: A and C disagree by 44.8% — BLS depth calc inconsistency
+
+  [§6b POST-CONVERGENCE BATMAN CHECK]
+    Converged params: t0=0.00012  rp=0.01782  b=0.7071
+    rp^2:                        317.6 ppm
+    1 - batman_model.min():      332.0 ppm
+    rp^2 vs batman: diff=4.5%  *** BATMAN NOT MATCHING rp^2 — geometry issue (grazing?)
+
+    lnL at truth values [rp=0.01764, b=0.7410]: -3341.29
+    lnL at converged    [rp=0.01782, b=0.7071]: -3402.66
+    lnL(truth) > lnL(converged) by 61.4 — SAMPLER PROBLEM: true optimum exists but chain didn't find it
+
+    Binned folded flux vs batman model  (MCMC window ±7.2 h):
+    phase(h)    data_med       model   n_pts    resid(ppm)
+       -6.71    0.999996    1.000000     316        -4.0
+       -5.76    1.000026    1.000000     313       +25.7
+       -4.80    1.000018    1.000000     316       +17.6
+       -3.84    1.000005    1.000000     315        +4.8
+       -2.88    1.000008    1.000000     312        +8.1
+       -1.92    1.000032    1.000000     311       +32.2
+       -0.96    0.999900    0.999770     312      +130.8
+        0.00    0.999743    0.999668     311       +75.0
+        0.96    0.999911    0.999768     305      +143.1
+        1.92    1.000026    1.000000     309       +26.0
+        2.88    1.000007    1.000000     307        +6.7
+        3.84    1.000019    1.000000     313       +18.8
+        4.80    1.000002    1.000000     308        +1.7
+        5.76    1.000018    1.000000     318       +17.9
+        6.72    1.000011    1.000000     311       +11.3
+────────────────────────────────────────────────────────────────────────
+  Kepler-18 — DETECTION SUMMARY
+────────────────────────────────────────────────────────────────────────
+  Found 3 planet(s) | Truth has 3 confirmed
+  FOUND            Kepler-18 b           P=3.5047d  R=2.03 R_earth
+  FOUND            Kepler-18 c           P=7.6416d  R=4.91 R_earth
+  FOUND            Kepler-18 d           P=14.8589d  R=5.94 R_earth
+════════════════════════════════════════════════════════════════════════
+  TARGET: Kepler-58  (4 confirmed planets in truth)
+════════════════════════════════════════════════════════════════════════
+
+  Fetching light curve (max_quarters=8)...
+Loading 'Kepler-58' from cache...
+  Points:     30,348
+  Baseline:   774.4 days
+  Cadence:    29.4 min
+  Flux min:   0.998072   max: 1.003244
+  Median err: 0.000364
+
+  Fetching stellar params from NASA Exoplanet Archive...
+INFO | exotransit.physics.limb_darkening: LD coefficients for Teff=5843K, logg=4.39, [Fe/H]=0.10: u1=0.3983±0.0644, u2=0.2635±0.0368
+INFO | exotransit.detection.bls: Running BLS on Kepler-58: period range 2–100 days, 30348 data points
+  R_star: 1.0300 R_sun  |  M_star: 0.9500 M_sun  |  Teff: 5843 K
+  u1=0.3983  u2=0.2635
+  Truth R_star (CSV): 1.0830 R_sun  (archive returned 1.0300, diff=-4.9%)
+
+  Running BLS (max_planets=5)...
+INFO | exotransit.detection.bls: BLS result: period=10.2176d, depth=0.000847, SDE=40.8, SNR=23.6, reliable=True
+INFO | exotransit.detection.bls: Running BLS on Kepler-58: period range 2–100 days, 30348 data points
+INFO | exotransit.detection.bls: BLS result: period=15.5725d, depth=0.000782, SDE=44.7, SNR=20.4, reliable=True
+INFO | exotransit.detection.bls: Running BLS on Kepler-58: period range 2–100 days, 30348 data points
+INFO | exotransit.detection.bls: BLS result: period=40.1030d, depth=0.000768, SDE=26.8, SNR=14.0, reliable=True
+INFO | exotransit.detection.bls: Running BLS on Kepler-58: period range 2–100 days, 30348 data points
+INFO | exotransit.detection.bls: BLS result: period=4.4584d, depth=0.000585, SDE=23.9, SNR=19.6, reliable=True
+INFO | exotransit.detection.bls: Running BLS on Kepler-58: period range 2–100 days, 30348 data points
+
+  BLS stopped at planet 5: not reliable
+    TREE: sde=10.98 in (9.91, 15.12], failed n_transits_expected > 13.75 and duration_h ≤ 7.92 (n_transits=9.0, duration_h=2.40)
+
+  Pass-2 re-detrend: masking 4 planet(s) and re-running biweight...
+INFO | exotransit.detection.bls: BLS result: period=85.8630d, depth=0.000987, SDE=11.0, SNR=9.7, reliable=False
+WARNING | exotransit.detection.bls: [Kepler-58] BLS candidate REJECTED — period=85.8630d, depth=986.6ppm, SDE=10.98, SNR=9.74, in_transit_pts=40, n_transits_expected=9.0
+WARNING | exotransit.detection.bls:   [Kepler-58]  TREE: sde=10.98 in (9.91, 15.12], failed n_transits_expected > 13.75 and duration_h ≤ 7.92 (n_transits=9.0, duration_h=2.40)
+INFO | exotransit.pipeline.light_curves: Pass-2 biweight detrend: masking 1991 transit points (6.6% of baseline) across 4 planet(s)
+  Refined LC: 30348 points
+────────────────────────────────────────────────────────────────────────
+  PLANET 1 — Kepler-58 b  (P=10.2176d)
+────────────────────────────────────────────────────────────────────────
+  [§1 BLS OUTPUT]
+    Period:        10.21760 d
+    Duration:      2.880 h
+    Depth:         846.8 ppm  (0.000847)
+    SDE:           40.81
+    SNR:           23.63
+    In-transit pts: 358  (expected ~5.9/transit × 75.8 transits)
+    Expected transits in baseline: 75.79
+    Aliases:        none
+
+    vs truth [Kepler-58 b]:
+      Period:   10.21760 d   truth=10.21865 d   err=-0.0%
+      Depth:    846.8 ppm  truth=445.3 ppm  err=+90.2%
+      Duration: 2.880 h    truth=3.802 h    err=-24.3%
+
+  [§2 FOLDED FLUX ANALYSIS]
+    Transit window:  ±1.44 h  (358 in-transit, 29990 out-of-transit pts)
+    Baseline median: 1.000003  (should be ~1.0)
+    Baseline std:    415.8 ppm  (noise level)
+    Transit minimum: 0.998297
+    Implied depth (baseline - min): 1706.3 ppm
+    bls.transit_depth:              846.8 ppm  *** DISAGREE >5%
+    *** DEPTH MISMATCH: folded says 1706.3 ppm, BLS says 846.8 ppm
+        -> Problem is in depth computation from folded flux, not upstream in detrending
+
+    rp_init (from bls.transit_depth): 0.02910
+    rp_init (from folded flux min):   0.04131  *** DIFFER > 0.005 — init wrong from the start
+
+    Truth rp/R*:    0.01966  (rp^2 = 386.6 ppm)
+    Truth depth:    445.3 ppm
+    Folded implies: 1706.3 ppm  (err vs truth: +283.2%)
+    BLS depth:      846.8 ppm  (err vs truth: +90.2%)
+
+  [§3 MCMC INITIALIZATION]
+    t0: center=0.00000  min=-0.00233  max=0.00180  std=0.00112
+    rp: center=0.02910  min=0.01078  max=0.05823  std=0.01229
+    b: center=0.20000  min=0.00000  max=0.78808  std=0.22760
+
+    Orbital geometry:
+      a/R_star (batman p.a):         18.9124
+      b_max for full transit:         17.8833  (= a/R* - 1 - rp)
+      Walkers with b >= a/R* (geom. invalid): 0.0%
+      Walkers with b >= 1.0 (grazing):        0.0%
+
+    Truth rp=0.01966  b=0.4160
+    rp truth in walker init range [0.01078, 0.05823]: yes
+
+    Batman at truth params [t0=0, rp=0.01966, b=0.4160]:
+      model_flux.min()  = 0.999548
+      implied depth     = 451.6 ppm
+      truth depth (CSV) = 445.3 ppm
+      batman vs truth:    +1.4%
+
+  [§3b BURN-IN STATE]  (running 500 burn-in steps...)
+100%|██████████| 500/500 [00:02<00:00, 203.02it/s]
+    Median walker after burn-in:  t0=-0.00413  rp=0.01800  b=0.5461
+    model_flux.min() at median walker: 0.999635  (depth=0.000365 = 365.2 ppm)
+    data_flux.min() in MCMC window:    0.998297  (depth=0.001703 = 1703.5 ppm)
+
+    lnL at truth values:          -1284.32
+    lnL at burn-in median walker: -1257.39
+    *** lnL(truth) < lnL(burned median) by 26.9 — LIKELIHOOD PREFERS WRONG ANSWER (data problem) ***
+
+  [§4 MCMC OUTPUT]  (n_walkers=32, n_steps=4000, n_burnin=500)
+INFO | exotransit.mcmc.fit_mcmc: Running MCMC for Kepler-58, period=10.2176d, u1=0.3983, u2=0.2635 (fixed), M*=0.950 M_sun, R*=1.030 R_sun, cadence=29.4 min
+INFO | exotransit.mcmc.fit_mcmc: Burn-in: 500 steps...
+100%|██████████| 500/500 [00:02<00:00, 234.35it/s]
+INFO | exotransit.mcmc.fit_mcmc: Production: 4000 steps...
+100%|██████████| 4000/4000 [00:17<00:00, 228.31it/s]
+INFO | exotransit.mcmc.fit_mcmc: MCMC done: rp=0.0187+0.0005-0.0004, b=0.2019, acceptance=0.312
+    rp:           0.01866  -0.00045  +0.00048
+    b:            0.2019   -0.1060   +0.1025
+    t0:           0.00462  -0.00214  +0.00141
+    depth (rp^2): 348.1 ppm
+    Acceptance fraction: 0.3118
+    Converged: True
+    Convergence note: τ=72, n_steps/τ=56
+
+  [§5 DERIVED VS PUBLISHED]
+    Stellar radius used: 1.0300 R_sun
+    rp_mcmc × R_star × 109.076 = 2.096 R_earth  [2.046, 2.150]
+    Period (BLS):  10.21760 d
+
+    Published (Kepler-58 b):
+      R_planet: 2.330 R_earth  ->  computed: 2.096  err: -10.0%
+      Period:   10.21865 d          ->  BLS:      10.21760  err: -0.0%
+      rp/R*:    0.01966               ->  MCMC:     0.01866  err: -5.1%
+      b:        0.4160                ->  MCMC:     0.2019  err: -51.5%
+
+  [§6 KEY DEPTH DIAGNOSTIC — where is depth lost?]
+    A) BLS transit_depth:              846.8 ppm
+    B) 1 - min(folded flux):          1703.5 ppm  (naive, ignores baseline offset)
+    C) baseline_med - min(fold):      1706.3 ppm  (corrected)
+    D) rp_mcmc^2:                      348.1 ppm
+    E) Truth depth:                    445.3 ppm
+    Error vs truth:  A=+90.2%  C=+283.2%  D=-21.8%
+
+    VERDICT: All depths within 25% of truth
+    NOTE: A and C disagree by 50.4% — BLS depth calc inconsistency
+
+  [§6b POST-CONVERGENCE BATMAN CHECK]
+    Converged params: t0=0.00462  rp=0.01866  b=0.2019
+    rp^2:                        348.1 ppm
+    1 - batman_model.min():      419.3 ppm
+    rp^2 vs batman: diff=20.4%  *** BATMAN NOT MATCHING rp^2 — geometry issue (grazing?)
+
+    lnL at truth values [rp=0.01966, b=0.4160]: -1284.32
+    lnL at converged    [rp=0.01866, b=0.2019]: -1275.81
+    *** lnL(truth) < lnL(converged) by 8.5 — DATA PROBLEM: likelihood genuinely prefers the wrong params ***
+        The detrended data no longer supports the published solution.
+        SavGol has altered the flux enough that the true rp/b is a worse fit.
+
+    Binned folded flux vs batman model  (MCMC window ±7.2 h):
+    phase(h)    data_med       model   n_pts    resid(ppm)
+       -6.71    1.000054    1.000000     120       +53.6
+       -5.75    1.000105    1.000000     118      +105.2
+       -4.79    1.000054    1.000000     117       +54.4
+       -3.84    1.000050    1.000000     119       +49.7
+       -2.88    0.999983    1.000000     122       -16.6
+       -1.92    0.999956    0.999924     121       +31.8
+       -0.96    0.999618    0.999609     120        +9.3
+        0.00    0.999630    0.999581     121       +49.4
+        0.96    0.999740    0.999597     117      +142.9
+        1.92    0.999883    0.999708     122      +175.0
+        2.88    1.000136    1.000000     121      +135.9
+        3.84    1.000094    1.000000     121       +94.1
+        4.80    1.000064    1.000000     124       +64.1
+        5.76    1.000119    1.000000     119      +119.1
+        6.72    1.000047    1.000000     120       +46.9
+────────────────────────────────────────────────────────────────────────
+  PLANET 2 — Kepler-58 c  (P=15.5725d)
+────────────────────────────────────────────────────────────────────────
+  [§1 BLS OUTPUT]
+    Period:        15.57250 d
+    Duration:      3.840 h
+    Depth:         782.4 ppm  (0.000782)
+    SDE:           44.69
+    SNR:           20.43
+    In-transit pts: 320  (expected ~7.8/transit × 49.7 transits)
+    Expected transits in baseline: 49.73
+    Aliases:        none
+
+    vs truth [Kepler-58 c]:
+      Period:   15.57250 d   truth=15.57364 d   err=-0.0%
+      Depth:    782.4 ppm  truth=468.1 ppm  err=+67.1%
+      Duration: 3.840 h    truth=5.326 h    err=-27.9%
+
+  [§2 FOLDED FLUX ANALYSIS]
+    Transit window:  ±1.92 h  (320 in-transit, 30028 out-of-transit pts)
+    Baseline median: 1.000000  (should be ~1.0)
+    Baseline std:    410.4 ppm  (noise level)
+    Transit minimum: 0.998674
+    Implied depth (baseline - min): 1326.1 ppm
+    bls.transit_depth:              782.4 ppm  *** DISAGREE >5%
+    *** DEPTH MISMATCH: folded says 1326.1 ppm, BLS says 782.4 ppm
+        -> Problem is in depth computation from folded flux, not upstream in detrending
+
+    rp_init (from bls.transit_depth): 0.02797
+    rp_init (from folded flux min):   0.03642  *** DIFFER > 0.005 — init wrong from the start
+
+    Truth rp/R*:    0.02484  (rp^2 = 617.0 ppm)
+    Truth depth:    468.1 ppm
+    Folded implies: 1326.1 ppm  (err vs truth: +183.3%)
+    BLS depth:      782.4 ppm  (err vs truth: +67.1%)
+
+  [§3 MCMC INITIALIZATION]
+    t0: center=0.00000  min=-0.00233  max=0.00180  std=0.00112
+    rp: center=0.02797  min=0.01036  max=0.05598  std=0.01182
+    b: center=0.20000  min=0.00000  max=0.78808  std=0.22760
+
+    Orbital geometry:
+      a/R_star (batman p.a):         25.0468
+      b_max for full transit:         24.0188  (= a/R* - 1 - rp)
+      Walkers with b >= a/R* (geom. invalid): 0.0%
+      Walkers with b >= 1.0 (grazing):        0.0%
+
+    Truth rp=0.02484  b=0.9460
+    rp truth in walker init range [0.01036, 0.05598]: yes
+
+    Batman at truth params [t0=0, rp=0.02484, b=0.9460]:
+      model_flux.min()  = 0.999544
+      implied depth     = 455.8 ppm
+      truth depth (CSV) = 468.1 ppm
+      batman vs truth:    -2.6%
+
+  [§3b BURN-IN STATE]  (running 500 burn-in steps...)
+100%|██████████| 500/500 [00:02<00:00, 248.07it/s]
+    Median walker after burn-in:  t0=-0.00515  rp=0.01724  b=0.5347
+    model_flux.min() at median walker: 0.999663  (depth=0.000337 = 336.6 ppm)
+    data_flux.min() in MCMC window:    0.998632  (depth=0.001368 = 1368.4 ppm)
+
+    lnL at truth values:          -785.81
+    lnL at burn-in median walker: -736.24
+    *** lnL(truth) < lnL(burned median) by 49.6 — LIKELIHOOD PREFERS WRONG ANSWER (data problem) ***
+
+  [§4 MCMC OUTPUT]  (n_walkers=32, n_steps=4000, n_burnin=500)
+INFO | exotransit.mcmc.fit_mcmc: Running MCMC for Kepler-58, period=15.5725d, u1=0.3983, u2=0.2635 (fixed), M*=0.950 M_sun, R*=1.030 R_sun, cadence=29.4 min
+INFO | exotransit.mcmc.fit_mcmc: Burn-in: 500 steps...
+100%|██████████| 500/500 [00:01<00:00, 252.73it/s]
+INFO | exotransit.mcmc.fit_mcmc: Production: 4000 steps...
+100%|██████████| 4000/4000 [00:15<00:00, 251.78it/s]
+INFO | exotransit.mcmc.fit_mcmc: MCMC done: rp=0.0205+0.0005-0.0005, b=0.4951, acceptance=0.343
+    rp:           0.02051  -0.00054  +0.00052
+    b:            0.4951   -0.0438   +0.0275
+    t0:           -0.00667  -0.00149  +0.00252
+    depth (rp^2): 420.7 ppm
+    Acceptance fraction: 0.3428
+    Converged: True
+    Convergence note: τ=33, n_steps/τ=122
+
+  [§5 DERIVED VS PUBLISHED]
+    Stellar radius used: 1.0300 R_sun
+    rp_mcmc × R_star × 109.076 = 2.304 R_earth  [2.243, 2.363]
+    Period (BLS):  15.57250 d
+
+    Published (Kepler-58 c):
+      R_planet: 2.940 R_earth  ->  computed: 2.304  err: -21.6%
+      Period:   15.57364 d          ->  BLS:      15.57250  err: -0.0%
+      rp/R*:    0.02484               ->  MCMC:     0.02051  err: -17.4%
+      b:        0.9460                ->  MCMC:     0.4951  err: -47.7%
+
+  [§6 KEY DEPTH DIAGNOSTIC — where is depth lost?]
+    A) BLS transit_depth:              782.4 ppm
+    B) 1 - min(folded flux):          1326.0 ppm  (naive, ignores baseline offset)
+    C) baseline_med - min(fold):      1326.1 ppm  (corrected)
+    D) rp_mcmc^2:                      420.7 ppm
+    E) Truth depth:                    468.1 ppm
+    Error vs truth:  A=+67.1%  C=+183.3%  D=-10.1%
+
+    VERDICT: All depths within 25% of truth
+    NOTE: A and C disagree by 41.0% — BLS depth calc inconsistency
+
+  [§6b POST-CONVERGENCE BATMAN CHECK]
+    Converged params: t0=-0.00667  rp=0.02051  b=0.4951
+    rp^2:                        420.7 ppm
+    1 - batman_model.min():      481.9 ppm
+    rp^2 vs batman: diff=14.6%  *** BATMAN NOT MATCHING rp^2 — geometry issue (grazing?)
+
+    lnL at truth values [rp=0.02484, b=0.9460]: -785.81
+    lnL at converged    [rp=0.02051, b=0.4951]: -755.63
+    *** lnL(truth) < lnL(converged) by 30.2 — DATA PROBLEM: likelihood genuinely prefers the wrong params ***
+        The detrended data no longer supports the published solution.
+        SavGol has altered the flux enough that the true rp/b is a worse fit.
+
+    Binned folded flux vs batman model  (MCMC window ±7.2 h):
+    phase(h)    data_med       model   n_pts    resid(ppm)
+       -6.71    1.000027    1.000000      80       +27.5
+       -5.75    1.000165    1.000000      82      +165.0
+       -4.80    1.000008    1.000000      81        +7.9
+       -3.84    1.000125    1.000000      80      +125.4
+       -2.88    0.999998    1.000000      82        -1.8
+       -1.92    0.999938    0.999641      82      +296.9
+       -0.96    0.999678    0.999535      77      +143.3
+       -0.01    0.999606    0.999519      81       +87.2
+        0.95    0.999589    0.999553      80       +35.7
+        1.91    0.999953    0.999905      79       +48.5
+        2.87    0.999963    1.000000      78       -37.5
+        3.83    1.000035    1.000000      81       +35.2
+        4.79    1.000017    1.000000      78       +17.2
+        5.74    1.000116    1.000000      79      +116.0
+        6.70    1.000089    1.000000      78       +89.2
+────────────────────────────────────────────────────────────────────────
+  PLANET 3 — Kepler-58 d  (P=40.1030d)
+────────────────────────────────────────────────────────────────────────
+  [§1 BLS OUTPUT]
+    Period:        40.10299 d
+    Duration:      4.800 h
+    Depth:         767.6 ppm  (0.000768)
+    SDE:           26.81
+    SNR:           14.03
+    In-transit pts: 165  (expected ~9.8/transit × 19.3 transits)
+    Expected transits in baseline: 19.31
+    Aliases:        none
+
+    vs truth [Kepler-58 d]:
+      Period:   40.10299 d   truth=40.10156 d   err=+0.0%
+      Depth:    767.6 ppm  truth=550.0 ppm  err=+39.6%
+      Duration: 4.800 h    truth=5.246 h    err=-8.5%
+
+  [§2 FOLDED FLUX ANALYSIS]
+    Transit window:  ±2.40 h  (165 in-transit, 30183 out-of-transit pts)
+    Baseline median: 1.000000  (should be ~1.0)
+    Baseline std:    406.1 ppm  (noise level)
+    Transit minimum: 0.998864
+    Implied depth (baseline - min): 1135.8 ppm
+    bls.transit_depth:              767.6 ppm  *** DISAGREE >5%
+    *** DEPTH MISMATCH: folded says 1135.8 ppm, BLS says 767.6 ppm
+        -> Problem is in depth computation from folded flux, not upstream in detrending
+
+    rp_init (from bls.transit_depth): 0.02771
+    rp_init (from folded flux min):   0.03370  *** DIFFER > 0.005 — init wrong from the start
+
+    Truth rp/R*:    0.02471  (rp^2 = 610.8 ppm)
+    Truth depth:    550.0 ppm
+    Folded implies: 1135.8 ppm  (err vs truth: +106.5%)
+    BLS depth:      767.6 ppm  (err vs truth: +39.6%)
+
+  [§3 MCMC INITIALIZATION]
+    t0: center=0.00000  min=-0.00233  max=0.00180  std=0.00112
+    rp: center=0.02771  min=0.01026  max=0.05544  std=0.01170
+    b: center=0.20000  min=0.00000  max=0.78808  std=0.22760
+
+    Orbital geometry:
+      a/R_star (batman p.a):         47.0578
+      b_max for full transit:         46.0301  (= a/R* - 1 - rp)
+      Walkers with b >= a/R* (geom. invalid): 0.0%
+      Walkers with b >= 1.0 (grazing):        0.0%
+
+    Truth rp=0.02471  b=0.8680
+    rp truth in walker init range [0.01026, 0.05544]: yes
+
+    Batman at truth params [t0=0, rp=0.02471, b=0.8680]:
+      model_flux.min()  = 0.999457
+      implied depth     = 543.0 ppm
+      truth depth (CSV) = 550.0 ppm
+      batman vs truth:    -1.3%
+
+  [§3b BURN-IN STATE]  (running 500 burn-in steps...)
+100%|██████████| 500/500 [00:01<00:00, 370.18it/s]
+INFO | exotransit.mcmc.fit_mcmc: Running MCMC for Kepler-58, period=40.1030d, u1=0.3983, u2=0.2635 (fixed), M*=0.950 M_sun, R*=1.030 R_sun, cadence=29.4 min
+    Median walker after burn-in:  t0=0.00826  rp=0.01845  b=0.6953
+    model_flux.min() at median walker: 0.999642  (depth=0.000358 = 358.3 ppm)
+    data_flux.min() in MCMC window:    0.998864  (depth=0.001136 = 1135.7 ppm)
+
+    lnL at truth values:          -356.16
+    lnL at burn-in median walker: -337.88
+    *** lnL(truth) < lnL(burned median) by 18.3 — LIKELIHOOD PREFERS WRONG ANSWER (data problem) ***
+
+  [§4 MCMC OUTPUT]  (n_walkers=32, n_steps=4000, n_burnin=500)
+INFO | exotransit.mcmc.fit_mcmc: Burn-in: 500 steps...
+100%|██████████| 500/500 [00:01<00:00, 372.87it/s]
+INFO | exotransit.mcmc.fit_mcmc: Production: 4000 steps...
+100%|██████████| 4000/4000 [00:10<00:00, 383.45it/s]
+    rp:           0.02159  -0.00079  +0.00074
+    b:            0.6459   -0.0299   +0.0219
+    t0:           0.01184  -0.00290  +0.00251
+    depth (rp^2): 466.3 ppm
+    Acceptance fraction: 0.3475
+    Converged: True
+    Convergence note: τ=28, n_steps/τ=141
+
+  [§5 DERIVED VS PUBLISHED]
+    Stellar radius used: 1.0300 R_sun
+    rp_mcmc × R_star × 109.076 = 2.426 R_earth  [2.337, 2.509]
+    Period (BLS):  40.10299 d
+
+    Published (Kepler-58 d):
+      R_planet: 2.920 R_earth  ->  computed: 2.426  err: -16.9%
+      Period:   40.10156 d          ->  BLS:      40.10299  err: +0.0%
+      rp/R*:    0.02471               ->  MCMC:     0.02159  err: -12.6%
+      b:        0.8680                ->  MCMC:     0.6459  err: -25.6%
+
+  [§6 KEY DEPTH DIAGNOSTIC — where is depth lost?]
+    A) BLS transit_depth:              767.6 ppm
+    B) 1 - min(folded flux):          1135.7 ppm  (naive, ignores baseline offset)
+    C) baseline_med - min(fold):      1135.8 ppm  (corrected)
+    D) rp_mcmc^2:                      466.3 ppm
+    E) Truth depth:                    550.0 ppm
+    Error vs truth:  A=+39.6%  C=+106.5%  D=-15.2%
+
+    VERDICT: All depths within 25% of truth
+    NOTE: A and C disagree by 32.4% — BLS depth calc inconsistency
+
+  [§6b POST-CONVERGENCE BATMAN CHECK]
+    Converged params: t0=0.01184  rp=0.02159  b=0.6459
+    rp^2:                        466.3 ppm
+    1 - batman_model.min():      504.6 ppm
+    rp^2 vs batman: diff=8.2%  *** BATMAN NOT MATCHING rp^2 — geometry issue (grazing?)
+
+    lnL at truth values [rp=0.02471, b=0.8680]: -356.16
+    lnL at converged    [rp=0.02159, b=0.6459]: -351.28
+    *** lnL(truth) < lnL(converged) by 4.9 — DATA PROBLEM: likelihood genuinely prefers the wrong params ***
+        The detrended data no longer supports the published solution.
+        SavGol has altered the flux enough that the true rp/b is a worse fit.
+
+    Binned folded flux vs batman model  (MCMC window ±7.2 h):
+    phase(h)    data_med       model   n_pts    resid(ppm)
+       -6.71    1.000071    1.000000      33       +71.0
+       -5.76    1.000144    1.000000      33      +144.2
+       -4.80    1.000261    1.000000      34      +260.9
+       -3.85    1.000089    1.000000      29       +89.4
+       -2.89    1.000034    1.000000      33       +34.3
+       -1.94    0.999708    0.999648      34       +60.6
+       -0.98    0.999661    0.999529      32      +132.7
+       -0.03    0.999511    0.999497      33       +14.2
+        0.93    0.999528    0.999503      30       +24.7
+        1.88    0.999804    0.999553      33      +250.9
+        2.84    1.000000    0.999984      33       +16.2
+        3.79    1.000191    1.000000      33      +190.6
+        4.75    1.000014    1.000000      33       +13.9
+        5.70    1.000152    1.000000      33      +152.3
+        6.66    1.000004    1.000000      33        +3.7
+────────────────────────────────────────────────────────────────────────
+  PLANET 4 — Kepler-58 e  (P=4.4584d)
+────────────────────────────────────────────────────────────────────────
+  [§1 BLS OUTPUT]
+    Period:        4.45841 d
+    Duration:      1.920 h
+    Depth:         585.3 ppm  (0.000585)
+    SDE:           23.88
+    SNR:           19.62
+    In-transit pts: 523  (expected ~3.9/transit × 173.7 transits)
+    Expected transits in baseline: 173.70
+    Aliases:        none
+
+    vs truth [Kepler-58 e]:
+      Period:   4.45841 d   truth=4.45815 d   err=+0.0%
+      Depth:    585.3 ppm  truth=188.1 ppm  err=+211.1%
+      Duration: 1.920 h    truth=2.867 h    err=-33.0%
+
+  [§2 FOLDED FLUX ANALYSIS]
+    Transit window:  ±0.96 h  (523 in-transit, 29825 out-of-transit pts)
+    Baseline median: 1.000000  (should be ~1.0)
+    Baseline std:    404.4 ppm  (noise level)
+    Transit minimum: 0.998775
+    Implied depth (baseline - min): 1224.9 ppm
+    bls.transit_depth:              585.3 ppm  *** DISAGREE >5%
+    *** DEPTH MISMATCH: folded says 1224.9 ppm, BLS says 585.3 ppm
+        -> Problem is in depth computation from folded flux, not upstream in detrending
+
+    rp_init (from bls.transit_depth): 0.02419
+    rp_init (from folded flux min):   0.03500  *** DIFFER > 0.005 — init wrong from the start
+
+    Truth rp/R*:    0.01364  (rp^2 = 186.1 ppm)
+    Truth depth:    188.1 ppm
+    Folded implies: 1224.9 ppm  (err vs truth: +551.2%)
+    BLS depth:      585.3 ppm  (err vs truth: +211.1%)
+
+  [§3 MCMC INITIALIZATION]
+    t0: center=0.00000  min=-0.00233  max=0.00180  std=0.00112
+    rp: center=0.02419  min=0.00896  max=0.04841  std=0.01022
+    b: center=0.20000  min=0.00000  max=0.78808  std=0.22760
+
+    Orbital geometry:
+      a/R_star (batman p.a):         10.8801
+      b_max for full transit:         9.8559  (= a/R* - 1 - rp)
+      Walkers with b >= a/R* (geom. invalid): 0.0%
+      Walkers with b >= 1.0 (grazing):        0.0%
+
+    Truth rp=0.01364  b=0.7540
+    rp truth in walker init range [0.00896, 0.04841]: yes
+
+    Batman at truth params [t0=0, rp=0.01364, b=0.7540]:
+      model_flux.min()  = 0.999812
+      implied depth     = 188.1 ppm
+      truth depth (CSV) = 188.1 ppm
+      batman vs truth:    +0.0%
+
+  [§3b BURN-IN STATE]  (running 500 burn-in steps...)
+INFO | exotransit.mcmc.fit_mcmc: MCMC done: rp=0.0216+0.0007-0.0008, b=0.6459, acceptance=0.347
+100%|██████████| 500/500 [00:03<00:00, 130.11it/s]
+INFO | exotransit.mcmc.fit_mcmc: Running MCMC for Kepler-58, period=4.4584d, u1=0.3983, u2=0.2635 (fixed), M*=0.950 M_sun, R*=1.030 R_sun, cadence=29.4 min
+    Median walker after burn-in:  t0=0.00392  rp=0.01184  b=0.6976
+    model_flux.min() at median walker: 0.999852  (depth=0.000148 = 147.5 ppm)
+    data_flux.min() in MCMC window:    0.998635  (depth=0.001365 = 1365.2 ppm)
+
+    lnL at truth values:          -2268.41
+    lnL at burn-in median walker: -2266.99
+    *** lnL(truth) < lnL(burned median) by 1.4 — LIKELIHOOD PREFERS WRONG ANSWER (data problem) ***
+
+  [§4 MCMC OUTPUT]  (n_walkers=32, n_steps=4000, n_burnin=500)
+INFO | exotransit.mcmc.fit_mcmc: Burn-in: 500 steps...
+100%|██████████| 500/500 [00:03<00:00, 155.56it/s]
+INFO | exotransit.mcmc.fit_mcmc: Production: 4000 steps...
+100%|██████████| 4000/4000 [00:25<00:00, 156.32it/s]
+INFO | exotransit.mcmc.fit_mcmc: MCMC done: rp=0.0123+0.0007-0.0006, b=0.3071, acceptance=0.271
+    rp:           0.01232  -0.00059  +0.00072
+    b:            0.3071   -0.2024   +0.2222
+    t0:           0.00312  -0.00360  +0.00619
+    depth (rp^2): 151.8 ppm
+    Acceptance fraction: 0.2714
+    Converged: True
+    Convergence note: τ=60, n_steps/τ=67
+
+  [§5 DERIVED VS PUBLISHED]
+    Stellar radius used: 1.0300 R_sun
+    rp_mcmc × R_star × 109.076 = 1.384 R_earth  [1.318, 1.465]
+    Period (BLS):  4.45841 d
+
+    Published (Kepler-58 e):
+      R_planet: 1.610 R_earth  ->  computed: 1.384  err: -14.0%
+      Period:   4.45815 d          ->  BLS:      4.45841  err: +0.0%
+      rp/R*:    0.01364               ->  MCMC:     0.01232  err: -9.7%
+      b:        0.7540                ->  MCMC:     0.3071  err: -59.3%
+
+  [§6 KEY DEPTH DIAGNOSTIC — where is depth lost?]
+    A) BLS transit_depth:              585.3 ppm
+    B) 1 - min(folded flux):          1224.8 ppm  (naive, ignores baseline offset)
+    C) baseline_med - min(fold):      1224.9 ppm  (corrected)
+    D) rp_mcmc^2:                      151.8 ppm
+    E) Truth depth:                    188.1 ppm
+    Error vs truth:  A=+211.1%  C=+551.2%  D=-19.3%
+
+    VERDICT: All depths within 25% of truth
+    NOTE: A and C disagree by 52.2% — BLS depth calc inconsistency
+
+  [§6b POST-CONVERGENCE BATMAN CHECK]
+    Converged params: t0=0.00312  rp=0.01232  b=0.3071
+    rp^2:                        151.8 ppm
+    1 - batman_model.min():      180.7 ppm
+    rp^2 vs batman: diff=19.0%  *** BATMAN NOT MATCHING rp^2 — geometry issue (grazing?)
+
+    lnL at truth values [rp=0.01364, b=0.7540]: -2268.41
+    lnL at converged    [rp=0.01232, b=0.3071]: -2278.47
+    lnL(truth) > lnL(converged) by 10.1 — SAMPLER PROBLEM: true optimum exists but chain didn't find it
+
+    Binned folded flux vs batman model  (MCMC window ±7.2 h):
+    phase(h)    data_med       model   n_pts    resid(ppm)
+       -6.72    1.000000    1.000000     272        +0.1
+       -5.76    1.000024    1.000000     267       +24.5
+       -4.80    1.000001    1.000000     267        +1.3
+       -3.84    1.000015    1.000000     268       +15.3
+       -2.88    1.000000    1.000000     266        +0.1
+       -1.92    1.000000    1.000000     268        +0.1
+       -0.96    0.999971    0.999844     262      +127.0
+       -0.00    0.999859    0.999819     263       +39.3
+        0.96    0.999922    0.999835     262       +86.0
+        1.92    1.000023    1.000000     263       +23.3
+        2.88    0.999969    1.000000     262       -30.9
+        3.84    1.000025    1.000000     254       +25.1
+        4.80    1.000000    1.000000     262        +0.1
+        5.76    1.000018    1.000000     265       +18.5
+        6.72    1.000046    1.000000     264       +46.0
+────────────────────────────────────────────────────────────────────────
+  Kepler-58 — DETECTION SUMMARY
+────────────────────────────────────────────────────────────────────────
+  Found 4 planet(s) | Truth has 4 confirmed
+  FOUND            Kepler-58 e           P=4.4581d  R=1.61 R_earth
+  FOUND            Kepler-58 b           P=10.2186d  R=2.33 R_earth
+  FOUND            Kepler-58 c           P=15.5736d  R=2.94 R_earth
+  FOUND            Kepler-58 d           P=40.1016d  R=2.92 R_earth
+════════════════════════════════════════════════════════════════════════
+  TARGET: Kepler-20  (5 confirmed planets in truth)
+════════════════════════════════════════════════════════════════════════
+
+  Fetching light curve (max_quarters=8)...
+Loading 'Kepler-20' from cache...
+  Points:     30,023
+  Baseline:   670.8 days
+  Cadence:    29.4 min
+  Flux min:   0.998530   max: 1.001807
+  Median err: 0.000073
+
+  Fetching stellar params from NASA Exoplanet Archive...
+INFO | exotransit.physics.stars: Querying NASA Exoplanet Archive for 'Kepler-20'
+INFO | exotransit.physics.limb_darkening: LD coefficients for Teff=5495K, logg=4.45, [Fe/H]=0.07: u1=0.4554±0.0292, u2=0.2323±0.0200
+INFO | exotransit.detection.bls: Running BLS on Kepler-20: period range 2–100 days, 30023 data points
+  R_star: 0.9164 R_sun  |  M_star: 0.9290 M_sun  |  Teff: 5495 K
+  u1=0.4554  u2=0.2323
+  Truth R_star (CSV): 0.9250 R_sun  (archive returned 0.9164, diff=-0.9%)
+
+  Running BLS (max_planets=5)...
+INFO | exotransit.detection.bls: BLS result: period=10.8545d, depth=0.001092, SDE=57.9, SNR=168.9, reliable=True
+INFO | exotransit.detection.bls: Running BLS on Kepler-20: period range 2–100 days, 30023 data points
+INFO | exotransit.detection.bls: BLS result: period=3.6961d, depth=0.000442, SDE=63.1, SNR=92.4, reliable=True
+INFO | exotransit.detection.bls: Running BLS on Kepler-20: period range 2–100 days, 30023 data points
+INFO | exotransit.detection.bls: BLS result: period=77.6318d, depth=0.000753, SDE=78.8, SNR=52.7, reliable=True
+INFO | exotransit.detection.bls: Running BLS on Kepler-20: period range 2–100 days, 30023 data points
+INFO | exotransit.detection.bls: BLS result: period=6.0982d, depth=0.000159, SDE=25.9, SNR=26.2, reliable=True
+INFO | exotransit.detection.bls: Running BLS on Kepler-20: period range 2–100 days, 30023 data points
+INFO | exotransit.detection.bls: BLS result: period=19.5759d, depth=0.000172, SDE=18.4, SNR=17.2, reliable=True
+INFO | exotransit.pipeline.light_curves: Pass-2 biweight detrend: masking 2869 transit points (9.6% of baseline) across 5 planet(s)
+
+  Pass-2 re-detrend: masking 5 planet(s) and re-running biweight...
+  Refined LC: 30023 points
+────────────────────────────────────────────────────────────────────────
+  PLANET 1 — Kepler-20 c  (P=10.8545d)
+────────────────────────────────────────────────────────────────────────
+  [§1 BLS OUTPUT]
+    Period:        10.85455 d
+    Duration:      3.840 h
+    Depth:         1092.2 ppm  (0.001092)
+    SDE:           57.94
+    SNR:           168.86
+    In-transit pts: 431  (expected ~7.8/transit × 61.8 transits)
+    Expected transits in baseline: 61.80
+    Aliases:        none
+
+    vs truth [Kepler-20 c]:
+      Period:   10.85455 d   truth=10.85410 d   err=+0.0%
+      Depth:    1092.2 ppm  truth=1034.4 ppm  err=+5.6%
+      Duration: 3.840 h    truth=3.777 h    err=+1.7%
+
+  [§2 FOLDED FLUX ANALYSIS]
+    Transit window:  ±1.92 h  (431 in-transit, 29592 out-of-transit pts)
+    Baseline median: 1.000000  (should be ~1.0)
+    Baseline std:    116.1 ppm  (noise level)
+    Transit minimum: 0.998530
+    Implied depth (baseline - min): 1470.4 ppm
+    bls.transit_depth:              1092.2 ppm  *** DISAGREE >5%
+    *** DEPTH MISMATCH: folded says 1470.4 ppm, BLS says 1092.2 ppm
+        -> Problem is in depth computation from folded flux, not upstream in detrending
+
+    rp_init (from bls.transit_depth): 0.03305
+    rp_init (from folded flux min):   0.03835  *** DIFFER > 0.005 — init wrong from the start
+
+    Truth rp/R*:    0.02960  (rp^2 = 876.4 ppm)
+    Truth depth:    1034.4 ppm
+    Folded implies: 1470.4 ppm  (err vs truth: +42.1%)
+    BLS depth:      1092.2 ppm  (err vs truth: +5.6%)
+
+  [§3 MCMC INITIALIZATION]
+    t0: center=0.00000  min=-0.00233  max=0.00180  std=0.00112
+    rp: center=0.03305  min=0.01224  max=0.06614  std=0.01396
+    b: center=0.20000  min=0.00000  max=0.78808  std=0.22760
+
+    Orbital geometry:
+      a/R_star (batman p.a):         21.9670
+      b_max for full transit:         20.9340  (= a/R* - 1 - rp)
+      Walkers with b >= a/R* (geom. invalid): 0.0%
+      Walkers with b >= 1.0 (grazing):        0.0%
+
+    Truth rp=0.02960  b=0.4220
+    rp truth in walker init range [0.01224, 0.06614]: yes
+
+    Batman at truth params [t0=0, rp=0.02960, b=0.4220]:
+      model_flux.min()  = 0.998966
+      implied depth     = 1034.3 ppm
+      truth depth (CSV) = 1034.4 ppm
+      batman vs truth:    -0.0%
+
+  [§3b BURN-IN STATE]  (running 500 burn-in steps...)
+100%|██████████| 500/500 [00:02<00:00, 172.83it/s]
+    Median walker after burn-in:  t0=0.00077  rp=0.02868  b=0.2755
+    model_flux.min() at median walker: 0.999003  (depth=0.000997 = 997.4 ppm)
+    data_flux.min() in MCMC window:    0.998530  (depth=0.001470 = 1470.3 ppm)
+
+    lnL at truth values:          -3435.87
+    lnL at burn-in median walker: -3131.41
+    *** lnL(truth) < lnL(burned median) by 304.5 — LIKELIHOOD PREFERS WRONG ANSWER (data problem) ***
+
+  [§4 MCMC OUTPUT]  (n_walkers=32, n_steps=4000, n_burnin=500)
+INFO | exotransit.mcmc.fit_mcmc: Running MCMC for Kepler-20, period=10.8545d, u1=0.4554, u2=0.2323 (fixed), M*=0.929 M_sun, R*=0.916 R_sun, cadence=29.4 min
+INFO | exotransit.mcmc.fit_mcmc: Burn-in: 500 steps...
+100%|██████████| 500/500 [00:02<00:00, 179.37it/s]
+INFO | exotransit.mcmc.fit_mcmc: Production: 4000 steps...
+100%|██████████| 4000/4000 [00:22<00:00, 177.46it/s]
+INFO | exotransit.mcmc.fit_mcmc: MCMC done: rp=0.0290+0.0001-0.0001, b=0.2646, acceptance=0.348
+    rp:           0.02898  -0.00006  +0.00006
+    b:            0.2646   -0.0063   +0.0062
+    t0:           0.00067  -0.00013  +0.00013
+    depth (rp^2): 840.0 ppm
+    Acceptance fraction: 0.3476
+    Converged: True
+    Convergence note: τ=29, n_steps/τ=136
+
+  [§5 DERIVED VS PUBLISHED]
+    Stellar radius used: 0.9164 R_sun
+    rp_mcmc × R_star × 109.076 = 2.897 R_earth  [2.891, 2.903]
+    Period (BLS):  10.85455 d
+
+    Published (Kepler-20 c):
+      R_planet: 2.990 R_earth  ->  computed: 2.897  err: -3.1%
+      Period:   10.85410 d          ->  BLS:      10.85455  err: +0.0%
+      rp/R*:    0.02960               ->  MCMC:     0.02898  err: -2.1%
+      b:        0.4220                ->  MCMC:     0.2646  err: -37.3%
+
+  [§6 KEY DEPTH DIAGNOSTIC — where is depth lost?]
+    A) BLS transit_depth:             1092.2 ppm
+    B) 1 - min(folded flux):          1470.3 ppm  (naive, ignores baseline offset)
+    C) baseline_med - min(fold):      1470.4 ppm  (corrected)
+    D) rp_mcmc^2:                      840.0 ppm
+    E) Truth depth:                   1034.4 ppm
+    Error vs truth:  A=+5.6%  C=+42.1%  D=-18.8%
+
+    VERDICT: All depths within 25% of truth
+    NOTE: A and C disagree by 25.7% — BLS depth calc inconsistency
+
+  [§6b POST-CONVERGENCE BATMAN CHECK]
+    Converged params: t0=0.00067  rp=0.02898  b=0.2646
+    rp^2:                        840.0 ppm
+    1 - batman_model.min():     1020.4 ppm
+    rp^2 vs batman: diff=21.5%  *** BATMAN NOT MATCHING rp^2 — geometry issue (grazing?)
+
+    lnL at truth values [rp=0.02960, b=0.4220]: -3435.87
+    lnL at converged    [rp=0.02898, b=0.2646]: -3149.54
+    *** lnL(truth) < lnL(converged) by 286.3 — DATA PROBLEM: likelihood genuinely prefers the wrong params ***
+        The detrended data no longer supports the published solution.
+        SavGol has altered the flux enough that the true rp/b is a worse fit.
+
+    Binned folded flux vs batman model  (MCMC window ±7.2 h):
+    phase(h)    data_med       model   n_pts    resid(ppm)
+       -6.71    1.000011    1.000000     107       +10.7
+       -5.75    0.999998    1.000000     112        -2.3
+       -4.80    1.000026    1.000000     110       +25.6
+       -3.84    1.000038    1.000000     112       +37.8
+       -2.88    1.000033    1.000000     108       +32.6
+       -1.92    0.999880    1.000000     107      -119.6
+       -0.96    0.999096    0.999058     110       +37.6
+        0.00    0.998974    0.998980     110        -5.3
+        0.96    0.999064    0.999053     107       +11.3
+        1.92    0.999781    1.000000     104      -219.0
+        2.88    1.000008    1.000000     109        +8.4
+        3.84    1.000003    1.000000     109        +3.0
+        4.80    1.000038    1.000000     107       +37.9
+        5.76    1.000029    1.000000     107       +29.4
+        6.72    1.000011    1.000000     101       +10.8
+────────────────────────────────────────────────────────────────────────
+  PLANET 2 — Kepler-20 b  (P=3.6961d)
+────────────────────────────────────────────────────────────────────────
+  [§1 BLS OUTPUT]
+    Period:        3.69613 d
+    Duration:      2.400 h
+    Depth:         442.0 ppm  (0.000442)
+    SDE:           63.12
+    SNR:           92.43
+    In-transit pts: 793  (expected ~4.9/transit × 181.5 transits)
+    Expected transits in baseline: 181.50
+    Aliases:        none
+
+    vs truth [Kepler-20 b]:
+      Period:   3.69613 d   truth=3.69612 d   err=+0.0%
+      Depth:    442.0 ppm  truth=383.4 ppm  err=+15.3%
+      Duration: 2.400 h    truth=2.463 h    err=-2.6%
+
+  [§2 FOLDED FLUX ANALYSIS]
+    Transit window:  ±1.20 h  (793 in-transit, 29230 out-of-transit pts)
+    Baseline median: 1.000001  (should be ~1.0)
+    Baseline std:    102.9 ppm  (noise level)
+    Transit minimum: 0.999302
+    Implied depth (baseline - min): 698.1 ppm
+    bls.transit_depth:              442.0 ppm  *** DISAGREE >5%
+    *** DEPTH MISMATCH: folded says 698.1 ppm, BLS says 442.0 ppm
+        -> Problem is in depth computation from folded flux, not upstream in detrending
+
+    rp_init (from bls.transit_depth): 0.02102
+    rp_init (from folded flux min):   0.02642  *** DIFFER > 0.005 — init wrong from the start
+
+    Truth rp/R*:    0.01763  (rp^2 = 310.7 ppm)
+    Truth depth:    383.4 ppm
+    Folded implies: 698.1 ppm  (err vs truth: +82.1%)
+    BLS depth:      442.0 ppm  (err vs truth: +15.3%)
+
+  [§3 MCMC INITIALIZATION]
+    t0: center=0.00000  min=-0.00233  max=0.00180  std=0.00112
+    rp: center=0.02102  min=0.00779  max=0.04207  std=0.00888
+    b: center=0.20000  min=0.00000  max=0.78808  std=0.22760
+
+    Orbital geometry:
+      a/R_star (batman p.a):         10.7118
+      b_max for full transit:         9.6907  (= a/R* - 1 - rp)
+      Walkers with b >= a/R* (geom. invalid): 0.0%
+      Walkers with b >= 1.0 (grazing):        0.0%
+
+    Truth rp=0.01763  b=0.0160
+    rp truth in walker init range [0.00779, 0.04207]: yes
+
+    Batman at truth params [t0=0, rp=0.01763, b=0.0160]:
+      model_flux.min()  = 0.999616
+      implied depth     = 383.8 ppm
+      truth depth (CSV) = 383.4 ppm
+      batman vs truth:    +0.1%
+
+  [§3b BURN-IN STATE]  (running 500 burn-in steps...)
+100%|██████████| 500/500 [00:05<00:00, 83.60it/s]
+INFO | exotransit.mcmc.fit_mcmc: Running MCMC for Kepler-20, period=3.6961d, u1=0.4554, u2=0.2323 (fixed), M*=0.929 M_sun, R*=0.916 R_sun, cadence=29.4 min
+    Median walker after burn-in:  t0=-0.00242  rp=0.01709  b=0.4400
+    model_flux.min() at median walker: 0.999657  (depth=0.000343 = 343.3 ppm)
+    data_flux.min() in MCMC window:    0.999302  (depth=0.000698 = 697.6 ppm)
+
+    lnL at truth values:          -4917.85
+    lnL at burn-in median walker: -4507.78
+    *** lnL(truth) < lnL(burned median) by 410.1 — LIKELIHOOD PREFERS WRONG ANSWER (data problem) ***
+
+  [§4 MCMC OUTPUT]  (n_walkers=32, n_steps=4000, n_burnin=500)
+INFO | exotransit.mcmc.fit_mcmc: Burn-in: 500 steps...
+100%|██████████| 500/500 [00:05<00:00, 99.37it/s] 
+INFO | exotransit.mcmc.fit_mcmc: Production: 4000 steps...
+100%|██████████| 4000/4000 [00:41<00:00, 95.73it/s] 
+    rp:           0.01808  -0.00007  +0.00007
+    b:            0.3776   -0.0085   +0.0075
+    t0:           -0.00239  -0.00017  +0.00016
+    depth (rp^2): 326.8 ppm
+    Acceptance fraction: 0.3477
+    Converged: True
+    Convergence note: τ=30, n_steps/τ=132
+
+  [§5 DERIVED VS PUBLISHED]
+    Stellar radius used: 0.9164 R_sun
+    rp_mcmc × R_star × 109.076 = 1.807 R_earth  [1.799, 1.814]
+    Period (BLS):  3.69613 d
+
+    Published (Kepler-20 b):
+      R_planet: 1.780 R_earth  ->  computed: 1.807  err: +1.5%
+      Period:   3.69612 d          ->  BLS:      3.69613  err: +0.0%
+      rp/R*:    0.01763               ->  MCMC:     0.01808  err: +2.5%
+      b:        0.0160                ->  MCMC:     0.3776  err: +2260.3%
+
+  [§6 KEY DEPTH DIAGNOSTIC — where is depth lost?]
+    A) BLS transit_depth:              442.0 ppm
+    B) 1 - min(folded flux):           697.6 ppm  (naive, ignores baseline offset)
+    C) baseline_med - min(fold):       698.1 ppm  (corrected)
+    D) rp_mcmc^2:                      326.8 ppm
+    E) Truth depth:                    383.4 ppm
+    Error vs truth:  A=+15.3%  C=+82.1%  D=-14.8%
+
+    VERDICT: All depths within 25% of truth
+    NOTE: A and C disagree by 36.7% — BLS depth calc inconsistency
+
+  [§6b POST-CONVERGENCE BATMAN CHECK]
+    Converged params: t0=-0.00239  rp=0.01808  b=0.3776
+    rp^2:                        326.8 ppm
+    1 - batman_model.min():      389.5 ppm
+    rp^2 vs batman: diff=19.2%  *** BATMAN NOT MATCHING rp^2 — geometry issue (grazing?)
+
+    lnL at truth values [rp=0.01763, b=0.0160]: -4917.85
+    lnL at converged    [rp=0.01808, b=0.3776]: -4668.93
+    *** lnL(truth) < lnL(converged) by 248.9 — DATA PROBLEM: likelihood genuinely prefers the wrong params ***
+        The detrended data no longer supports the published solution.
+        SavGol has altered the flux enough that the true rp/b is a worse fit.
+
+    Binned folded flux vs batman model  (MCMC window ±7.2 h):
+    phase(h)    data_med       model   n_pts    resid(ppm)
+       -6.72    1.000004    1.000000     319        +3.9
+       -5.76    1.000010    1.000000     322        +9.8
+       -4.80    1.000019    1.000000     321       +18.6
+       -3.84    1.000022    1.000000     319       +21.9
+       -2.88    1.000017    1.000000     322       +16.6
+       -1.92    1.000019    1.000000     319       +19.1
+       -0.96    0.999754    0.999679     318       +75.5
+        0.00    0.999654    0.999611     316       +42.9
+        0.96    0.999781    0.999708     317       +72.4
+        1.92    1.000012    1.000000     325       +11.6
+        2.88    1.000023    1.000000     323       +22.6
+        3.84    1.000019    1.000000     318       +19.1
+        4.80    1.000013    1.000000     324       +13.5
+        5.76    1.000024    1.000000     324       +24.4
+        6.72    1.000022    1.000000     320       +21.9
+────────────────────────────────────────────────────────────────────────
+  PLANET 3 — Kepler-20 d  (P=77.6318d)
+────────────────────────────────────────────────────────────────────────
+  [§1 BLS OUTPUT]
+    Period:        77.63182 d
+    Duration:      6.240 h
+    Depth:         753.5 ppm  (0.000753)
+    SDE:           78.79
+    SNR:           52.67
+    In-transit pts: 87  (expected ~12.7/transit × 8.6 transits)
+    Expected transits in baseline: 8.64
+    Aliases:        none
+
+    vs truth [Kepler-20 d]:
+      Period:   77.63182 d   truth=77.61144 d   err=+0.0%
+      Depth:    753.5 ppm  truth=814.5 ppm  err=-7.5%
+      Duration: 6.240 h    truth=7.179 h    err=-13.1%
+
+  [§2 FOLDED FLUX ANALYSIS]
+    Transit window:  ±3.12 h  (87 in-transit, 29936 out-of-transit pts)
+    Baseline median: 0.999999  (should be ~1.0)
+    Baseline std:    96.0 ppm  (noise level)
+    Transit minimum: 0.999098
+    Implied depth (baseline - min): 900.3 ppm
+    bls.transit_depth:              753.5 ppm  *** DISAGREE >5%
+    *** DEPTH MISMATCH: folded says 900.3 ppm, BLS says 753.5 ppm
+        -> Problem is in depth computation from folded flux, not upstream in detrending
+
+    rp_init (from bls.transit_depth): 0.02745
+    rp_init (from folded flux min):   0.03001
+
+    Truth rp/R*:    0.02568  (rp^2 = 659.5 ppm)
+    Truth depth:    814.5 ppm
+    Folded implies: 900.3 ppm  (err vs truth: +10.5%)
+    BLS depth:      753.5 ppm  (err vs truth: -7.5%)
+
+  [§3 MCMC INITIALIZATION]
+    t0: center=0.00000  min=-0.00233  max=0.00180  std=0.00112
+    rp: center=0.02745  min=0.01017  max=0.05493  std=0.01160
+    b: center=0.20000  min=0.00000  max=0.78808  std=0.22760
+
+    Orbital geometry:
+      a/R_star (batman p.a):         81.5436
+      b_max for full transit:         80.5161  (= a/R* - 1 - rp)
+      Walkers with b >= a/R* (geom. invalid): 0.0%
+      Walkers with b >= 1.0 (grazing):        0.0%
+
+    Truth rp=0.02568  b=0.0940
+    rp truth in walker init range [0.01017, 0.05493]: yes
+
+    Batman at truth params [t0=0, rp=0.02568, b=0.0940]:
+      model_flux.min()  = 0.999187
+      implied depth     = 813.0 ppm
+      truth depth (CSV) = 814.5 ppm
+      batman vs truth:    -0.2%
+
+  [§3b BURN-IN STATE]  (running 500 burn-in steps...)
+INFO | exotransit.mcmc.fit_mcmc: MCMC done: rp=0.0181+0.0001-0.0001, b=0.3776, acceptance=0.348
+100%|██████████| 500/500 [00:01<00:00, 478.12it/s]
+    Median walker after burn-in:  t0=-0.00799  rp=0.02297  b=0.5630
+    model_flux.min() at median walker: 0.999404  (depth=0.000596 = 595.6 ppm)
+    data_flux.min() in MCMC window:    0.999098  (depth=0.000902 = 901.6 ppm)
+
+    lnL at truth values:          -2117.26
+    lnL at burn-in median walker: -1486.41
+    *** lnL(truth) < lnL(burned median) by 630.8 — LIKELIHOOD PREFERS WRONG ANSWER (data problem) ***
+
+  [§4 MCMC OUTPUT]  (n_walkers=32, n_steps=4000, n_burnin=500)
+INFO | exotransit.mcmc.fit_mcmc: Running MCMC for Kepler-20, period=77.6318d, u1=0.4554, u2=0.2323 (fixed), M*=0.929 M_sun, R*=0.916 R_sun, cadence=29.4 min
+INFO | exotransit.mcmc.fit_mcmc: Burn-in: 500 steps...
+100%|██████████| 500/500 [00:00<00:00, 541.10it/s]
+INFO | exotransit.mcmc.fit_mcmc: Production: 4000 steps...
+100%|██████████| 4000/4000 [00:06<00:00, 574.49it/s]
+WARNING | emcee.autocorr: The chain is shorter than 50 times the integrated autocorrelation time for 2 parameter(s). Use this estimate with caution and run a longer chain!
+N/50 = 80;
+tau: [117.61035336  68.24328507 107.37882286]
+INFO | exotransit.mcmc.fit_mcmc: MCMC done: rp=0.0237+0.0001-0.0001, b=0.0470, acceptance=0.173
+  0%|          | 0/500 [00:00<?, ?it/s]    rp:           0.02370  -0.00014  +0.00015
+    b:            0.0470   -0.0338   +0.1188
+    t0:           -0.02096  -0.00197  +0.03064
+    depth (rp^2): 561.6 ppm
+    Acceptance fraction: 0.1726
+    Converged: False
+    Convergence note: Acceptance fraction 0.17 outside healthy range 0.2–0.5
+    Convergence note: Chain too short: n_steps=4000 < 50×τ=118
+
+  [§5 DERIVED VS PUBLISHED]
+    Stellar radius used: 0.9164 R_sun
+    rp_mcmc × R_star × 109.076 = 2.369 R_earth  [2.355, 2.384]
+    Period (BLS):  77.63182 d
+
+    Published (Kepler-20 d):
+      R_planet: 2.590 R_earth  ->  computed: 2.369  err: -8.5%
+      Period:   77.61144 d          ->  BLS:      77.63182  err: +0.0%
+      rp/R*:    0.02568               ->  MCMC:     0.02370  err: -7.7%
+      b:        0.0940                ->  MCMC:     0.0470  err: -50.0%
+
+  [§6 KEY DEPTH DIAGNOSTIC — where is depth lost?]
+    A) BLS transit_depth:              753.5 ppm
+    B) 1 - min(folded flux):           901.6 ppm  (naive, ignores baseline offset)
+    C) baseline_med - min(fold):       900.3 ppm  (corrected)
+    D) rp_mcmc^2:                      561.6 ppm
+    E) Truth depth:                    814.5 ppm
+    Error vs truth:  A=-7.5%  C=+10.5%  D=-31.0%
+
+    VERDICT: A ok, D low -> MCMC not finding true depth (init / prior / convergence)
+    NOTE: A and C disagree by 16.3% — BLS depth calc inconsistency
+
+  [§6b POST-CONVERGENCE BATMAN CHECK]
+    Converged params: t0=-0.02096  rp=0.02370  b=0.0470
+    rp^2:                        561.6 ppm
+    1 - batman_model.min():      693.4 ppm
+    rp^2 vs batman: diff=23.5%  *** BATMAN NOT MATCHING rp^2 — geometry issue (grazing?)
+
+    lnL at truth values [rp=0.02568, b=0.0940]: -2117.26
+    lnL at converged    [rp=0.02370, b=0.0470]: -1758.09
+    *** lnL(truth) < lnL(converged) by 359.2 — DATA PROBLEM: likelihood genuinely prefers the wrong params ***
+        The detrended data no longer supports the published solution.
+        SavGol has altered the flux enough that the true rp/b is a worse fit.
+
+    Binned folded flux vs batman model  (MCMC window ±9.4 h):
+    phase(h)    data_med       model   n_pts    resid(ppm)
+       -8.70    1.000082    1.000000      17       +81.5
+       -7.46    1.000132    1.000000      19      +131.6
+       -6.22    1.000088    1.000000      18       +87.8
+       -4.98    1.000050    1.000000      21       +49.7
+       -3.73    0.999967    0.999526      17      +441.1
+       -2.49    0.999474    0.999362      18      +112.0
+       -1.25    0.999379    0.999313      16       +65.8
+       -0.01    0.999290    0.999310      18       -19.9
+        1.24    0.999345    0.999348      19        -3.0
+        2.48    0.999707    0.999472      16      +235.8
+        3.72    0.999944    1.000000      19       -56.3
+        4.96    1.000030    1.000000      15       +29.7
+        6.20    1.000101    1.000000      18      +101.4
+        7.45    1.000070    1.000000      17       +70.3
+        8.69    1.000040    1.000000      14       +39.5
+────────────────────────────────────────────────────────────────────────
+  PLANET 4 — Kepler-20 e  (P=6.0982d)
+────────────────────────────────────────────────────────────────────────
+  [§1 BLS OUTPUT]
+    Period:        6.09816 d
+    Duration:      2.400 h
+    Depth:         159.1 ppm  (0.000159)
+    SDE:           25.89
+    SNR:           26.24
+    In-transit pts: 488  (expected ~4.9/transit × 110.0 transits)
+    Expected transits in baseline: 110.01
+    Aliases:        none
+
+    vs truth [Kepler-20 e]:
+      Period:   6.09816 d   truth=6.09856 d   err=-0.0%
+      Depth:    159.1 ppm  truth=84.4 ppm  err=+88.5%
+      Duration: 2.400 h    truth=2.982 h    err=-19.5%
+
+  [§2 FOLDED FLUX ANALYSIS]
+    Transit window:  ±1.20 h  (488 in-transit, 29535 out-of-transit pts)
+    Baseline median: 0.999999  (should be ~1.0)
+    Baseline std:    94.8 ppm  (noise level)
+    Transit minimum: 0.999632
+    Implied depth (baseline - min): 366.7 ppm
+    bls.transit_depth:              159.1 ppm  *** DISAGREE >5%
+    *** DEPTH MISMATCH: folded says 366.7 ppm, BLS says 159.1 ppm
+        -> Problem is in depth computation from folded flux, not upstream in detrending
+
+    rp_init (from bls.transit_depth): 0.01261
+    rp_init (from folded flux min):   0.01915  *** DIFFER > 0.005 — init wrong from the start
+
+    Truth rp/R*:    0.00831  (rp^2 = 69.0 ppm)
+    Truth depth:    84.4 ppm
+    Folded implies: 366.7 ppm  (err vs truth: +334.4%)
+    BLS depth:      159.1 ppm  (err vs truth: +88.5%)
+
+  [§3 MCMC INITIALIZATION]
+    t0: center=0.00000  min=-0.00233  max=0.00180  std=0.00112
+    rp: center=0.01261  min=0.00467  max=0.02524  std=0.00533
+    b: center=0.20000  min=0.00000  max=0.78808  std=0.22760
+
+    Orbital geometry:
+      a/R_star (batman p.a):         14.9565
+      b_max for full transit:         13.9439  (= a/R* - 1 - rp)
+      Walkers with b >= a/R* (geom. invalid): 0.0%
+      Walkers with b >= 1.0 (grazing):        0.0%
+
+    Truth rp=0.00831  b=0.2100
+    rp truth in walker init range [0.00467, 0.02524]: yes
+
+    Batman at truth params [t0=0, rp=0.00831, b=0.2100]:
+      model_flux.min()  = 0.999916
+      implied depth     = 84.4 ppm
+      truth depth (CSV) = 84.4 ppm
+      batman vs truth:    +0.0%
+
+  [§3b BURN-IN STATE]  (running 500 burn-in steps...)
+100%|██████████| 500/500 [00:03<00:00, 152.62it/s]
+INFO | exotransit.mcmc.fit_mcmc: Running MCMC for Kepler-20, period=6.0982d, u1=0.4554, u2=0.2323 (fixed), M*=0.929 M_sun, R*=0.916 R_sun, cadence=29.4 min
+    Median walker after burn-in:  t0=0.00303  rp=0.00667  b=0.4765
+    model_flux.min() at median walker: 0.999948  (depth=0.000052 = 51.8 ppm)
+    data_flux.min() in MCMC window:    0.999544  (depth=0.000456 = 455.5 ppm)
+
+    lnL at truth values:          -2437.89
+    lnL at burn-in median walker: -2363.75
+    *** lnL(truth) < lnL(burned median) by 74.1 — LIKELIHOOD PREFERS WRONG ANSWER (data problem) ***
+
+  [§4 MCMC OUTPUT]  (n_walkers=32, n_steps=4000, n_burnin=500)
+INFO | exotransit.mcmc.fit_mcmc: Burn-in: 500 steps...
+100%|██████████| 500/500 [00:02<00:00, 174.25it/s]
+INFO | exotransit.mcmc.fit_mcmc: Production: 4000 steps...
+100%|██████████| 4000/4000 [00:22<00:00, 179.40it/s]
+    rp:           0.00921  -0.00014  +0.00014
+    b:            0.0676   -0.0463   +0.0545
+    t0:           0.00802  -0.00040  +0.00054
+    depth (rp^2): 84.8 ppm
+    Acceptance fraction: 0.3234
+    Converged: True
+    Convergence note: τ=40, n_steps/τ=101
+
+  [§5 DERIVED VS PUBLISHED]
+    Stellar radius used: 0.9164 R_sun
+    rp_mcmc × R_star × 109.076 = 0.920 R_earth  [0.906, 0.935]
+    Period (BLS):  6.09816 d
+
+    Published (Kepler-20 e):
+      R_planet: 0.840 R_earth  ->  computed: 0.920  err: +9.6%
+      Period:   6.09856 d          ->  BLS:      6.09816  err: -0.0%
+      rp/R*:    0.00831               ->  MCMC:     0.00921  err: +10.8%
+      b:        0.2100                ->  MCMC:     0.0676  err: -67.8%
+
+  [§6 KEY DEPTH DIAGNOSTIC — where is depth lost?]
+    A) BLS transit_depth:              159.1 ppm
+    B) 1 - min(folded flux):           368.0 ppm  (naive, ignores baseline offset)
+    C) baseline_med - min(fold):       366.7 ppm  (corrected)
+    D) rp_mcmc^2:                       84.8 ppm
+    E) Truth depth:                     84.4 ppm
+    Error vs truth:  A=+88.5%  C=+334.4%  D=+0.5%
+
+    VERDICT: All depths within 25% of truth
+    NOTE: A and C disagree by 56.6% — BLS depth calc inconsistency
+
+  [§6b POST-CONVERGENCE BATMAN CHECK]
+    Converged params: t0=0.00802  rp=0.00921  b=0.0676
+    rp^2:                         84.8 ppm
+    1 - batman_model.min():      104.6 ppm
+    rp^2 vs batman: diff=23.4%  *** BATMAN NOT MATCHING rp^2 — geometry issue (grazing?)
+
+    lnL at truth values [rp=0.00831, b=0.2100]: -2437.89
+    lnL at converged    [rp=0.00921, b=0.0676]: -2532.32
+    lnL(truth) > lnL(converged) by 94.4 — SAMPLER PROBLEM: true optimum exists but chain didn't find it
+
+    Binned folded flux vs batman model  (MCMC window ±7.2 h):
+    phase(h)    data_med       model   n_pts    resid(ppm)
+       -6.72    0.999999    1.000000     197        -1.3
+       -5.76    1.000009    1.000000     200        +9.3
+       -4.80    1.000015    1.000000     195       +15.5
+       -3.84    1.000018    1.000000     199       +18.3
+       -2.88    0.999999    1.000000     197        -1.3
+       -1.92    1.000001    1.000000     196        +1.3
+       -0.96    0.999965    0.999914     193       +51.7
+        0.00    0.999961    0.999896     200       +65.7
+        0.96    0.999956    0.999902     194       +53.8
+        1.92    1.000007    1.000000     193        +6.7
+        2.88    1.000003    1.000000     194        +3.3
+        3.84    1.000007    1.000000     195        +6.9
+        4.80    0.999999    1.000000     191        -1.3
+        5.76    0.999999    1.000000     193        -1.3
+        6.72    1.000000    1.000000     196        -0.5
+────────────────────────────────────────────────────────────────────────
+  PLANET 5 — Kepler-20 f  (P=19.5759d)
+────────────────────────────────────────────────────────────────────────
+  [§1 BLS OUTPUT]
+    Period:        19.57589 d
+    Duration:      2.880 h
+    Depth:         171.9 ppm  (0.000172)
+    SDE:           18.36
+    SNR:           17.23
+    In-transit pts: 183  (expected ~5.9/transit × 34.3 transits)
+    Expected transits in baseline: 34.27
+    Aliases:        [9.7879]
+
+    vs truth [Kepler-20 f]:
+      Period:   19.57589 d   truth=19.57761 d   err=-0.0%
+      Depth:    171.9 ppm  truth=98.1 ppm  err=+75.2%
+      Duration: 2.880 h    truth=3.382 h    err=-14.8%
+
+  [§2 FOLDED FLUX ANALYSIS]
+    Transit window:  ±1.44 h  (183 in-transit, 29840 out-of-transit pts)
+    Baseline median: 0.999999  (should be ~1.0)
+    Baseline std:    93.5 ppm  (noise level)
+    Transit minimum: 0.999708
+    Implied depth (baseline - min): 290.4 ppm
+    bls.transit_depth:              171.9 ppm  *** DISAGREE >5%
+    *** DEPTH MISMATCH: folded says 290.4 ppm, BLS says 171.9 ppm
+        -> Problem is in depth computation from folded flux, not upstream in detrending
+
+    rp_init (from bls.transit_depth): 0.01311
+    rp_init (from folded flux min):   0.01704
+
+    Truth rp/R*:    0.00891  (rp^2 = 79.4 ppm)
+    Truth depth:    98.1 ppm
+    Folded implies: 290.4 ppm  (err vs truth: +196.1%)
+    BLS depth:      171.9 ppm  (err vs truth: +75.2%)
+
+  [§3 MCMC INITIALIZATION]
+    t0: center=0.00000  min=-0.00233  max=0.00180  std=0.00112
+    rp: center=0.01311  min=0.00486  max=0.02624  std=0.00554
+    b: center=0.20000  min=0.00000  max=0.78808  std=0.22760
+
+    Orbital geometry:
+      a/R_star (batman p.a):         32.5470
+      b_max for full transit:         31.5339  (= a/R* - 1 - rp)
+      Walkers with b >= a/R* (geom. invalid): 0.0%
+      Walkers with b >= 1.0 (grazing):        0.0%
+
+    Truth rp=0.00891  b=0.0490
+    rp truth in walker init range [0.00486, 0.02624]: yes
+
+    Batman at truth params [t0=0, rp=0.00891, b=0.0490]:
+      model_flux.min()  = 0.999902
+      implied depth     = 98.1 ppm
+      truth depth (CSV) = 98.1 ppm
+      batman vs truth:    -0.0%
+
+  [§3b BURN-IN STATE]  (running 500 burn-in steps...)
+INFO | exotransit.mcmc.fit_mcmc: MCMC done: rp=0.0092+0.0001-0.0001, b=0.0676, acceptance=0.323
+100%|██████████| 500/500 [00:01<00:00, 304.30it/s]
+    Median walker after burn-in:  t0=-0.00181  rp=0.00818  b=0.7217
+    model_flux.min() at median walker: 0.999931  (depth=0.000069 = 69.2 ppm)
+    data_flux.min() in MCMC window:    0.999708  (depth=0.000292 = 291.7 ppm)
+
+    lnL at truth values:          -785.89
+    lnL at burn-in median walker: -716.48
+    *** lnL(truth) < lnL(burned median) by 69.4 — LIKELIHOOD PREFERS WRONG ANSWER (data problem) ***
+
+  [§4 MCMC OUTPUT]  (n_walkers=32, n_steps=4000, n_burnin=500)
+INFO | exotransit.mcmc.fit_mcmc: Running MCMC for Kepler-20, period=19.5759d, u1=0.4554, u2=0.2323 (fixed), M*=0.929 M_sun, R*=0.916 R_sun, cadence=29.4 min
+INFO | exotransit.mcmc.fit_mcmc: Burn-in: 500 steps...
+100%|██████████| 500/500 [00:01<00:00, 314.47it/s]
+INFO | exotransit.mcmc.fit_mcmc: Production: 4000 steps...
+100%|██████████| 4000/4000 [00:10<00:00, 383.17it/s]
+WARNING | emcee.autocorr: The chain is shorter than 50 times the integrated autocorrelation time for 3 parameter(s). Use this estimate with caution and run a longer chain!
+N/50 = 80;
+tau: [351.83781935 255.31751162 353.9928721 ]
+INFO | exotransit.mcmc.fit_mcmc: MCMC done: rp=0.0099+0.0003-0.0003, b=0.3664, acceptance=0.189
+    rp:           0.00990  -0.00031  +0.00034
+    b:            0.3664   -0.3335   +0.0561
+    t0:           0.00268  -0.00216  +0.00839
+    depth (rp^2): 98.0 ppm
+    Acceptance fraction: 0.1894
+    Converged: False
+    Convergence note: Acceptance fraction 0.19 outside healthy range 0.2–0.5
+    Convergence note: Chain too short: n_steps=4000 < 50×τ=354
+
+  [§5 DERIVED VS PUBLISHED]
+    Stellar radius used: 0.9164 R_sun
+    rp_mcmc × R_star × 109.076 = 0.989 R_earth  [0.958, 1.023]
+    Period (BLS):  19.57589 d
+
+    Published (Kepler-20 f):
+      R_planet: 0.900 R_earth  ->  computed: 0.989  err: +9.9%
+      Period:   19.57761 d          ->  BLS:      19.57589  err: -0.0%
+      rp/R*:    0.00891               ->  MCMC:     0.00990  err: +11.1%
+      b:        0.0490                ->  MCMC:     0.3664  err: +647.8%
+
+  [§6 KEY DEPTH DIAGNOSTIC — where is depth lost?]
+    A) BLS transit_depth:              171.9 ppm
+    B) 1 - min(folded flux):           291.7 ppm  (naive, ignores baseline offset)
+    C) baseline_med - min(fold):       290.4 ppm  (corrected)
+    D) rp_mcmc^2:                       98.0 ppm
+    E) Truth depth:                     98.1 ppm
+    Error vs truth:  A=+75.2%  C=+196.1%  D=-0.1%
+
+    VERDICT: All depths within 25% of truth
+    NOTE: A and C disagree by 40.8% — BLS depth calc inconsistency
+
+  [§6b POST-CONVERGENCE BATMAN CHECK]
+    Converged params: t0=0.00268  rp=0.00990  b=0.3664
+    rp^2:                         98.0 ppm
+    1 - batman_model.min():      117.0 ppm
+    rp^2 vs batman: diff=19.5%  *** BATMAN NOT MATCHING rp^2 — geometry issue (grazing?)
+
+    lnL at truth values [rp=0.00891, b=0.0490]: -785.89
+    lnL at converged    [rp=0.00990, b=0.3664]: -799.32
+    lnL(truth) > lnL(converged) by 13.4 — SAMPLER PROBLEM: true optimum exists but chain didn't find it
+
+    Binned folded flux vs batman model  (MCMC window ±7.2 h):
+    phase(h)    data_med       model   n_pts    resid(ppm)
+       -6.72    1.000001    1.000000      64        +1.1
+       -5.76    1.000000    1.000000      63        -0.4
+       -4.80    0.999999    1.000000      63        -1.3
+       -3.84    1.000037    1.000000      64       +37.0
+       -2.88    0.999999    1.000000      63        -1.3
+       -1.92    0.999999    0.999927      63       +71.3
+       -0.96    0.999929    0.999890      62       +39.2
+       -0.01    0.999941    0.999883      61       +57.8
+        0.95    0.999962    0.999888      59       +73.7
+        1.91    0.999992    0.999916      62       +75.8
+        2.87    0.999999    1.000000      62        -1.3
+        3.83    0.999999    1.000000      63        -1.3
+        4.79    1.000023    1.000000      63       +22.6
+        5.75    1.000031    1.000000      63       +30.7
+        6.71    1.000026    1.000000      63       +26.2
+────────────────────────────────────────────────────────────────────────
+  Kepler-20 — DETECTION SUMMARY
+────────────────────────────────────────────────────────────────────────
+  Found 5 planet(s) | Truth has 5 confirmed
+  FOUND            Kepler-20 b           P=3.6961d  R=1.78 R_earth
+  FOUND            Kepler-20 e           P=6.0986d  R=0.84 R_earth
+  FOUND            Kepler-20 c           P=10.8541d  R=2.99 R_earth
+  FOUND            Kepler-20 f           P=19.5776d  R=0.90 R_earth
+  FOUND            Kepler-20 d           P=77.6114d  R=2.59 R_earth
+════════════════════════════════════════════════════════════════════════
+  DIAGNOSTIC COMPLETE
+════════════════════════════════════════════════════════════════════════
+
+Process finished with exit code 0
