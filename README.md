@@ -51,7 +51,7 @@ Detrending runs in two passes. **Pass 1** uses a biweight filter across the full
 
 Box Least Squares (Kovács, Zucker & Mazeh 2002) tests thousands of period/duration combinations, phase-folding the light curve at each and scoring the fit of a box-shaped dip. Two quality metrics: **SDE** (Signal Detection Efficiency, how many standard deviations the peak rises above the noise floor) and **SNR** (depth divided by uncertainty).
 
-Period grid: uniform in frequency with step df = min_duration / baseline², capped at 25,000 points. Duration grid: 15 geometrically-spaced values from ~30 min to a max bounded by the minimum search period.
+Period grid: uniform in frequency with step df = min_duration / baseline², capped at 25,000 points. Duration grid: 15 geometrically-spaced values from ~30 min to 12 hours.
 
 ### 3. Reliability vetting
 
@@ -153,7 +153,7 @@ Three configuration profiles are defined in `config.py`:
 | `MEDIUM` | 100,000 | 12 | Higher accuracy, more memory |
 | `FULL` | 200,000 | 17 | Maximum quality, local only |
 
-`LOW` is the active config (`CONF = LOW`). It runs fast enough for a real-time web app experience on Streamlit Community Cloud while still recovering planet radii to within ~10% of truth. `FULL` is available for local runs where memory and time are not constraints.
+`LOW` is the active config (`CONF = LOW`). It runs fast enough for a real-time web app experience on Streamlit Community Cloud while still recovering planet radii to within ~20% of truth. `FULL` is available for local runs where memory and time are not constraints.
 
 ---
 
