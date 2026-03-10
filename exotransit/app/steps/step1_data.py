@@ -16,7 +16,7 @@ def render():
     target = st.session_state.target
 
     st.markdown(f"""
-    <div class="step-header">Step 1 — Raw Data</div>
+    <div class="step-header">Step 1: Raw Data</div>
     <h2 style="margin: 0 0 0.25rem 0; font-size: 2rem;">
         {target}
     </h2>
@@ -77,7 +77,7 @@ def render():
             st.markdown(r"""
 **Limb darkening**
 
-Stars are not uniformly bright disks — they appear dimmer toward their edges
+Stars are not uniformly bright disks; they appear dimmer toward their edges
 (the "limb") than at their center. This happens because the edge of the star shows
 us cooler, higher-altitude gas, which emits less light.
 
@@ -105,13 +105,13 @@ models for this star's temperature, gravity, and metallicity
     st.markdown("""
     <div class="explain-box">
         <strong>Raw flux (top):</strong> Each point is one brightness measurement.
-        The sharp jumps between segments are <em>quarter boundaries</em> — every 90 days
+        The sharp jumps between segments are <em>quarter boundaries</em>: every 90 days
         Kepler rotated 90° to keep its solar panels facing the Sun, landing the star on
         different pixels with slightly different sensitivity. The flux level shifts but
         the underlying signal is the same.<br><br>
         <strong>Detrended &amp; normalized (bottom):</strong> After normalizing each segment to 1.0
         and removing slow instrumental drifts with a robust biweight filter, the transit
-        dips become visible as tiny downward spikes — each one a planet passing in front of
+        dips become visible as tiny downward spikes, each one a planet passing in front of
         the star. The highlighted points are candidates flagged at &gt;3σ below the median.
     </div>
     """, unsafe_allow_html=True)

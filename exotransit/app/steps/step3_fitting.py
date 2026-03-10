@@ -23,7 +23,7 @@ def render():
     conf = st.session_state.conf
 
     st.markdown("""
-    <div class="step-header">Step 3 — Bayesian Transit Fitting</div>
+    <div class="step-header">Step 3: Bayesian Transit Fitting</div>
     <h2 style="margin: 0 0 0.25rem 0; font-size: 2rem;">MCMC Parameter Estimation</h2>
     <p style="color: #94a3b8; margin: 0 0 1.5rem 0; font-family: 'DM Mono', monospace; font-size: 0.8rem;">
         Mapping the full posterior probability distribution over transit parameters
@@ -34,7 +34,7 @@ def render():
     <div class="explain-box">
         <strong>BLS found the periods. Now we measure the planets.</strong>
         Rather than fitting a single best curve, MCMC maps the full space of transit shapes
-        consistent with the data — {conf.mcmc.n_walkers} parallel "walkers" each take
+        consistent with the data: {conf.mcmc.n_walkers} parallel "walkers" each take
         {conf.mcmc.n_steps:,} steps through parameter space, concentrating where the data
         actually supports the model. The resulting cloud of solutions
         <em>is</em> the uncertainty: wide spread = genuinely uncertain; tight cluster = well constrained.
@@ -45,15 +45,15 @@ def render():
         st.markdown("""
 **From BLS box to physical transit model**
 
-BLS finds the period using a rough rectangular box — fast, but not physically precise.
+BLS finds the period using a rough rectangular box (fast, but not physically precise).
 For the actual parameter measurement we fit the **Mandel–Agol transit model**: a
 mathematically exact computation of how much starlight a spherical planet blocks at
 every moment as it crosses a limb-darkened stellar disk.
 
 The three free parameters are:
-- **t₀** — transit center time
-- **rp = Rp / R★** — planet-to-star radius ratio
-- **b** — impact parameter: how centrally the planet crosses (0 = central, 1 = grazing)
+- **t₀**: transit center time
+- **rp = Rp / R★**: planet-to-star radius ratio
+- **b**: impact parameter (how centrally the planet crosses: 0 = central, 1 = grazing)
 
 The transit depth (fractional brightness drop) is:
 """)
@@ -63,7 +63,7 @@ Planet radius in physical units is then:
 """)
         st.latex(r"R_p = r_p \times R_\star")
         st.markdown("""
-Limb darkening — stars appear dimmer at their edges than their centers — is fixed
+Limb darkening (stars appear dimmer at their edges than their centers) is fixed
 to theoretically predicted values from stellar atmosphere models (Claret & Bloemen 2011).
 
 ---
@@ -72,7 +72,7 @@ to theoretically predicted values from stellar atmosphere models (Claret & Bloem
 A least-squares fit finds the single combination that minimizes residuals. It assumes
 symmetric Gaussian errors. Transit parameters are correlated: a larger planet on a
 more grazing orbit (higher b) can produce the same light curve as a smaller central-transit
-planet. MCMC makes no such assumptions — it discovers the full shape of the uncertainty.
+planet. MCMC makes no such assumptions; it discovers the full shape of the uncertainty.
 
 ---
 **Monte Carlo: mapping the probability landscape**
@@ -103,11 +103,11 @@ the posterior actually occupies.
 **How telescope noise becomes parameter uncertainty**
 
 $\sigma_i$ appears directly in the likelihood. A deep, clean transit produces a
-tight posterior — the data strongly constrain the fit. A shallow transit in noisy
+tight posterior: the data strongly constrain the fit. A shallow transit in noisy
 data produces a broad posterior. The MCMC reveals the uncertainty that was always
 encoded in the noise floor of the detector. The asymmetric error bars you see on
 planet radius, impact parameter, and orbital period are not formulas applied after
-the fact — they are the actual spread of solutions the data cannot rule out.
+the fact; they are the actual spread of solutions the data cannot rule out.
 """)
 
     # Run MCMC if not cached
@@ -169,7 +169,7 @@ the fact — they are the actual spread of solutions the data cannot rule out.
         )
 
         # Advanced: spaghetti + corner in expander
-        with st.expander(f"Advanced — Planet {i+1} posterior detail"):
+        with st.expander(f"Advanced: Planet {i+1} posterior detail"):
 
             st.markdown("""
             <div style="
@@ -183,8 +183,8 @@ the fact — they are the actual spread of solutions the data cannot rule out.
                     <div style="font-family: 'DM Mono', monospace; font-size: 0.8rem;
                                 color: #38bdf8; margin-bottom: 0.3rem;">Posterior Spaghetti</div>
                     <div style="font-size: 0.8rem; color: #cbd5e1; line-height: 1.5;">
-                        Each faint line is one random draw from the MCMC chain — a transit model
-                        that is consistent with the data. The spread of lines shows the range of
+                        Each faint line is one random draw from the MCMC chain, a transit model
+                        consistent with the data. The spread of lines shows the range of
                         plausible solutions. A tight bundle means the data strongly constrain the
                         parameters; a wide spread means genuine uncertainty. The solid line is the
                         posterior median.
@@ -197,7 +197,7 @@ the fact — they are the actual spread of solutions the data cannot rule out.
                     <div style="font-size: 0.8rem; color: #cbd5e1; line-height: 1.5;">
                         The contour blobs show how pairs of parameters are correlated in the
                         posterior. A diagonal blob means the two parameters trade off against
-                        each other — you can't pin one down without knowing the other. Diagonals
+                        each other: you can't pin one down without knowing the other. Diagonals
                         on the corner plot indicate the parameters are independent. The histograms
                         on the diagonal show each parameter's marginal distribution.
                     </div>
@@ -221,8 +221,8 @@ the fact — they are the actual spread of solutions the data cannot rule out.
                         The projected distance between the planet's path and the centre of the
                         stellar disk, in units of stellar radii. b = 0 is a central transit;
                         b = 1 is grazing. Higher b produces a shallower, shorter transit and
-                        is correlated with r<sub>p</sub> — a grazing geometry can mimic a
-                        smaller planet.
+                        is correlated with r<sub>p</sub> (a grazing geometry can mimic a
+                        smaller planet).
                     </div>
                 </div>
             </div>

@@ -18,7 +18,7 @@ def render():
     all_mcmc = st.session_state.all_mcmc
 
     st.markdown(f"""
-    <div class="step-header">Step 4 — Results</div>
+    <div class="step-header">Step 4: Results</div>
     <h2 style="margin: 0 0 0.25rem 0; font-size: 2rem;">Planet Characterization</h2>
     <p style="color: #94a3b8; margin: 0 0 1.5rem 0; font-family: 'DM Mono', monospace; font-size: 0.8rem;">
         Physical parameters derived from MCMC posteriors + stellar parameters
@@ -165,16 +165,16 @@ def render():
 
     with st.expander("A note on uncertainty quantification"):
         st.markdown(r"""
-**What the uncertainties here represent — and what they don't**
+**What the uncertainties represent (and what they don't)**
 
 The error bars on planet radius and impact parameter come from the MCMC posterior:
 the spread of transit model parameters consistent with the detrended light curve.
-This correctly captures *photon noise* — the random scatter in individual
-brightness measurements.
+This correctly captures *photon noise* (the random scatter in individual
+brightness measurements).
 
 **What is not captured:** the detrended flux is treated as fixed truth.
 The biweight filter removed the stellar variability trend before MCMC ever ran.
-Any uncertainty in *where the trend was* — including whether the filter slightly
+Any uncertainty in *where the trend was*, including whether the filter slightly
 suppressed a transit, or misidentified a stellar oscillation as continuum —
 does not appear in the posterior. The reported error bars are therefore a lower
 bound on the true parameter uncertainty.

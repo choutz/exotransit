@@ -142,24 +142,32 @@ h1, h2, h3 {
     box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.15) !important;
 }
 
-/* Button */
-.stButton > button {
-    background: linear-gradient(135deg, #1d4ed8, #0ea5e9) !important;
-    color: white !important;
-    border: none !important;
+/* ── Buttons ───────────────────────────────────────────────────────────── */
+[data-testid="stBaseButton-primary"],
+[data-testid="stBaseButton-secondary"],
+[data-testid="stPopoverButton"] {
+    background-color: rgba(255, 255, 255, 0.9) !important;
+    border: 1px solid rgba(148, 163, 184, 0.25) !important;
     border-radius: 8px !important;
+}
+
+[data-testid="stBaseButton-primary"] p,
+[data-testid="stBaseButton-secondary"] p,
+[data-testid="stPopoverButton"] p {
+    color: #1e293b !important;
     font-family: 'DM Mono', monospace !important;
     font-size: 0.85rem !important;
     letter-spacing: 0.05em !important;
-    padding: 0.65rem 2rem !important;
-    transition: all 0.2s !important;
-    white-space: nowrap !important;
-    width: auto !important;
 }
 
-.stButton > button:hover {
-    transform: translateY(-1px) !important;
-    box-shadow: 0 8px 25px rgba(14, 165, 233, 0.35) !important;
+/* Freeze hover — no visual change */
+[data-testid="stBaseButton-primary"]:hover,
+[data-testid="stBaseButton-secondary"]:hover,
+[data-testid="stPopoverButton"]:hover {
+    background-color: rgba(255, 255, 255, 0.9) !important;
+    border: 1px solid rgba(148, 163, 184, 0.25) !important;
+    filter: none !important;
+    opacity: 1 !important;
 }
 
 /* Progress / spinner */
@@ -171,12 +179,81 @@ hr { border-color: rgba(148, 163, 184, 0.1) !important; }
 /* Plotly charts — remove white bg flash */
 .js-plotly-plot { background: transparent !important; }
 
-/* Expander */
-.streamlit-expanderHeader {
-    font-family: 'DM Mono', monospace !important;
-    font-size: 0.8rem !important;
+/* ── Expanders ────────────────────────────────────────────────────────── */
+[data-testid="stExpander"] {
+    border: 1px solid rgba(148, 163, 184, 0.15) !important;
+    border-radius: 8px !important;
+    overflow: hidden !important;
+    background: transparent !important;
+}
+
+[data-testid="stExpander"] details {
+    background: rgba(15, 23, 42, 0.5) !important;
+}
+
+[data-testid="stExpander"] summary {
+    background: rgba(15, 23, 42, 0.5) !important;
+    padding: 0.6rem 1rem !important;
+}
+
+[data-testid="stExpander"] summary:hover {
+    background: rgba(30, 41, 59, 0.6) !important;
+    cursor: pointer;
+}
+
+/* Content area — this is what goes white */
+[data-testid="stExpander"] details > div,
+[data-testid="stExpander"] details > section {
+    background: rgba(8, 14, 26, 0.8) !important;
+}
+
+/* Header text — font-family intentionally omitted to avoid clobbering the arrow icon font */
+[data-testid="stExpander"] summary span,
+[data-testid="stExpander"] summary p {
+    color: #94a3b8 !important;
+}
+
+/* Arrow icon */
+[data-testid="stExpander"] summary svg {
+    color: #94a3b8 !important;
+    fill: #94a3b8 !important;
+}
+
+/* Prose inside expanders */
+[data-testid="stExpander"] p,
+[data-testid="stExpander"] li,
+[data-testid="stExpander"] ul,
+[data-testid="stExpander"] ol {
+    color: #cbd5e1 !important;
+    font-size: 0.9rem !important;
+    line-height: 1.6 !important;
+}
+
+[data-testid="stExpander"] strong,
+[data-testid="stExpander"] b {
     color: #e2e8f0 !important;
-    letter-spacing: 0.05em !important;
+}
+
+[data-testid="stExpander"] h1,
+[data-testid="stExpander"] h2,
+[data-testid="stExpander"] h3 {
+    color: #e2e8f0 !important;
+}
+
+/* KaTeX equations rendered via st.latex() inside expanders */
+[data-testid="stExpander"] .katex,
+[data-testid="stExpander"] .katex * {
+    color: #e2e8f0 !important;
+}
+
+/* Old class name fallbacks */
+.streamlit-expanderHeader {
+    background: rgba(15, 23, 42, 0.5) !important;
+    color: #94a3b8 !important;
+}
+
+.streamlit-expanderContent {
+    background: rgba(8, 14, 26, 0.8) !important;
 }
 
 /* Spinner text */
@@ -282,12 +359,12 @@ def _nav_buttons(prev_step: int | None, next_step: int | None, next_label: str =
     cols = st.columns([1, 3, 1])
     if prev_step is not None:
         with cols[0]:
-            if st.button("← Back", key=f"back_{prev_step}"):
+            if st.button("← Back", key=f"back_{prev_step}", use_container_width=True):
                 st.session_state.step = prev_step
                 st.rerun()
     if next_step is not None:
         with cols[2]:
-            if st.button(next_label, key=f"next_{next_step}", type="primary"):
+            if st.button(next_label, key=f"next_{next_step}", type="primary", use_container_width=True):
                 st.session_state.step = next_step
                 st.rerun()
 
@@ -330,11 +407,11 @@ else:
         st.markdown("<div style='margin-top: 2.5rem;'></div>", unsafe_allow_html=True)
         col_back, col_mid, col_new = st.columns([1, 3, 1])
         with col_back:
-            if st.button("← Back", key="back_step4"):
+            if st.button("← Back", key="back_step4", use_container_width=True):
                 st.session_state.step = 3
                 st.rerun()
         with col_new:
-            if st.button("New star →", key="new_star", type="primary"):
+            if st.button("New star →", key="new_star", type="primary", use_container_width=True):
                 for k in list(st.session_state.keys()):
                     del st.session_state[k]
                 st.rerun()
