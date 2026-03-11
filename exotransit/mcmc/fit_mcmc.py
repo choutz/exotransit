@@ -133,6 +133,7 @@ def run_mcmc(
     u2: float = 0.3,
     stellar_mass: float = 1.0,
     stellar_radius: float = 1.0,
+    progress: bool = False,
 ) -> MCMCResult:
     """
     Run MCMC posterior sampling on a detected transit.
@@ -213,11 +214,11 @@ def run_mcmc(
     )
 
     logger.info(f"Burn-in: {n_burnin} steps...")
-    p0_burned, _, _ = sampler.run_mcmc(p0, n_burnin, progress=True)
+    p0_burned, _, _ = sampler.run_mcmc(p0, n_burnin, progress=progress)
     sampler.reset()
 
     logger.info(f"Production: {n_steps} steps...")
-    sampler.run_mcmc(p0_burned, n_steps, progress=True)
+    sampler.run_mcmc(p0_burned, n_steps, progress=progress)
 
     samples = sampler.get_chain(flat=True)
     acceptance = float(np.mean(sampler.acceptance_fraction))

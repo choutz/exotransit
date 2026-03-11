@@ -228,19 +228,16 @@ the fact; they are the actual spread of solutions the data cannot rule out.
             </div>
             """, unsafe_allow_html=True)
 
-            c1, c2 = st.columns([1, 1])
-            with c1:
-                st.plotly_chart(
-                    plot_mcmc_spaghetti(bls, mcmc),
-                    width='stretch',
-                    config={"displayModeBar": False},
-                )
-            with c2:
-                st.plotly_chart(
-                    plot_corner(mcmc),
-                    width='stretch',
-                    config={"displayModeBar": False},
-                )
+            st.plotly_chart(
+                plot_mcmc_spaghetti(bls, mcmc),
+                width='stretch',
+                config={"displayModeBar": False},
+            )
+            st.plotly_chart(
+                plot_corner(mcmc),
+                width='stretch',
+                config={"displayModeBar": False},
+            )
 
             if mcmc.convergence_notes:
                 for note in mcmc.convergence_notes:
