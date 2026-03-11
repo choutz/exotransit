@@ -41,7 +41,8 @@ def find_all_planets(
     if debug_dir is not None:
         Path(debug_dir).mkdir(parents=True, exist_ok=True)
 
-    with tqdm(total=max_planets, desc="Searching for planets", unit="planet") as pbar:
+    with tqdm(total=max_planets, desc="Searching for planets", unit="planet",
+              disable=progress_callback is not None) as pbar:
         for i in range(max_planets):
             pbar.set_description(f"Searching for planet {i + 1}")
 
