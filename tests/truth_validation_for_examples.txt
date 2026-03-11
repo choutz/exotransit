@@ -1,6 +1,3 @@
-"/Users/charlie/Desktop/job search 2026/exotransit/.venv/bin/python" /Users/charlie/Desktop/job search 2026/exotransit/tests/validate_against_truth.py 
-/Users/charlie/Desktop/job search 2026/exotransit/.venv/lib/python3.13/site-packages/lightkurve/prf/__init__.py:7: UserWarning: Warning: the tpfmodel submodule is not available without oktopus installed, which requires a current version of autograd. See #1452 for details.
-  warnings.warn(
 ════════════════════════════════════════════════════════════════════════
   TARGET: Kepler-5  (1 confirmed planets in truth)
 ════════════════════════════════════════════════════════════════════════
