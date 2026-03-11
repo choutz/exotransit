@@ -44,15 +44,11 @@ def render():
         st.markdown("""
 **The sliding box**
 
-Imagine your brightness record as a long strip of paper. You cut a small rectangular
-notch out of cardboard (width set to a trial transit duration) and drag it along
-the strip. Everywhere the notch fits a real dip, the residuals between the data and
-the notch are small; everywhere it doesn't, they're large. The period that gives the
-smallest total residual wins.
+BLS fits a simple box-shaped dip model to the brightness record, scanning across thousands
+of candidate periods, transit durations, and start times. Everywhere the box fits a real dip, 
+the residuals between the box and the notch are small; everywhere it doesn't, they're large. 
+The period that gives the smallest total residual wins.
 
-BLS does this for every combination of period, duration, and starting time across a
-grid of up to 25,000 candidates. It uses a fast frequency-domain algorithm, but
-conceptually it's a sliding match-filter hunting for box-shaped dips.
 """)
 
         st.markdown("**Phase folding: stacking every orbit**")
