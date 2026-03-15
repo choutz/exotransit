@@ -57,7 +57,7 @@ def render():
     ">Try an example</div>
     """, unsafe_allow_html=True)
 
-    # One row of buttons — no columns, just flow naturally
+    # One row of buttons
     cols = st.columns(5)
     for i, (name, desc) in enumerate(EXAMPLE_TARGETS):
         with cols[i]:

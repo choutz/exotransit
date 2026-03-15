@@ -51,12 +51,20 @@ def plot_light_curve_pipeline(lc: LightCurveData) -> go.Figure:
 
     Quarter/sector boundaries are marked as vertical lines.
     """
+    n_rows = 3 if lc.flux_normalized is not None and lc.trend is not None else 2
+    subplot_titles = (
+        ("Raw Flux", "Normalized + Biweight Trend", "Detrended & Normalized")
+        if n_rows == 3
+        else ("Raw Flux", "Detrended & Normalized")
+    )
+    row_heights = [0.33, 0.34, 0.33] if n_rows == 3 else [0.5, 0.5]
+
     fig = make_subplots(
-        rows=2, cols=1,
+        rows=n_rows, cols=1,
         shared_xaxes=True,
-        subplot_titles=("Raw Flux", "Detrended & Normalized"),
-        vertical_spacing=0.08,
-        row_heights=[0.5, 0.5],
+        subplot_titles=subplot_titles,
+        vertical_spacing=0.06,
+        row_heights=row_heights,
     )
 
     raw_time = np.asarray(lc.raw_time, dtype=float)
@@ -74,12 +82,31 @@ def plot_light_curve_pipeline(lc: LightCurveData) -> go.Figure:
     time_gaps = np.where(np.diff(lc.time) > 5.0)[0]
     for idx in time_gaps:
         boundary_time = float(lc.time[idx])
-        for row in [1, 2]:
+        for row in range(1, n_rows + 1):
             fig.add_vline(
                 x=boundary_time,
                 line=dict(color="#475569", width=1, dash="dot"),
                 row=row, col=1,
             )
+
+    detrended_row = n_rows
+    if n_rows == 3:
+        fig.add_trace(go.Scattergl(
+            x=lc.time,
+            y=lc.flux_normalized,
+            mode="markers",
+            marker=dict(size=1.5, color=COLORS["raw"], opacity=0.5),
+            name="Normalized flux",
+            showlegend=True,
+        ), row=2, col=1)
+        fig.add_trace(go.Scattergl(
+            x=lc.time,
+            y=lc.trend,
+            mode="lines",
+            line=dict(color=COLORS["trend"], width=1.5),
+            name="Biweight trend",
+            showlegend=True,
+        ), row=2, col=1)
 
     fig.add_trace(go.Scattergl(
         x=lc.time,
@@ -88,7 +115,7 @@ def plot_light_curve_pipeline(lc: LightCurveData) -> go.Figure:
         marker=dict(size=1.5, color=COLORS["clean"], opacity=0.6),
         name="Detrended flux",
         showlegend=True,
-    ), row=2, col=1)
+    ), row=detrended_row, col=1)
 
     # Mark transit candidates: >3-sigma dips
     median_flux = np.median(lc.flux)
@@ -102,15 +129,17 @@ def plot_light_curve_pipeline(lc: LightCurveData) -> go.Figure:
             marker=dict(size=3, color=COLORS["transit"], symbol="circle"),
             name="Transit candidates",
             showlegend=True,
-        ), row=2, col=1)
+        ), row=detrended_row, col=1)
 
-    fig.update_xaxes(title_text="Time (BKJD days)", row=2, col=1)
+    fig.update_xaxes(title_text="Time (BKJD days)", row=detrended_row, col=1)
     fig.update_yaxes(title_text="Flux", row=1, col=1)
-    fig.update_yaxes(title_text="Normalized Flux", row=2, col=1)
+    if n_rows == 3:
+        fig.update_yaxes(title_text="Norm. Flux", row=2, col=1)
+    fig.update_yaxes(title_text="Normalized Flux", row=detrended_row, col=1)
     fig.update_layout(
         **LAYOUT_DEFAULTS,
         title=dict(text=f"{lc.target_name} — Light Curve Pipeline", x=0.5, xanchor="center", font=dict(color="#e2e8f0")),
-        height=600,
+        height=800 if n_rows == 3 else 600,
     )
     fig.update_annotations(font=dict(color="#e2e8f0", size=12))
 

@@ -17,75 +17,7 @@ def assess_reliability(
     """
     Reliability vetting via a decision tree classifier trained on 1,250 labeled
     BLS candidates from 250 Kepler targets (Kepler 1–250 permissive validation run,
-    sigma-clipping bug fixed, fast BLS config).
-
-    The tree was fit using scikit-learn (DecisionTreeClassifier, max_depth=4,
-    balanced class weights) and achieves on the training data:
-        recall    = 95.0%   (569/599 real planets kept)
-        precision = 96.1%   (628/651 false positives eliminated)
-        F1        = 0.955
-
-    Feature importances from the fit:
-        sde                  0.860  (dominant — almost all discriminating power)
-        n_transits_expected  0.055
-        n_transit_pts        0.035
-        coverage_ratio       0.018
-        duration_h           0.014
-        per_transit_snr      0.010
-        duty_cycle           0.006
-
-    WHY A DECISION TREE INSTEAD OF THE NASA TCE FRAMEWORK
-    ──────────────────────────────────────────────────────
-    The original implementation used NASA's Threshold Crossing Event (TCE)
-    vetting pipeline (Jenkins et al. 2010), which applies a battery of
-    physically motivated threshold tests:
-
-        TCE-01/02  SDE and SNR above 7.1σ floor
-        TCE-03     Per-transit SNR > threshold
-        TCE-04     Duty cycle < 0.1 (eclipsing binary discriminator)
-        TCE-05/06  ≥ 3 in-transit points, ≥ 70% cadence coverage
-        TCE-07     Depth > 3σ above noise floor
-        TCE-08     ≥ 3 complete transit windows in baseline
-        TCE-09     No strong alias periods present
-        TCE-13     Depth < 3% (eclipsing binary depth discriminator)
-        TCE-14     Not below Kepler's 30 ppm detection floor with marginal SNR
-        TCE-15     Depth ≥ 60 ppm for long-cadence data
-
-    The TCE framework is well-motivated and correct for its intended context:
-    NASA runs it over 200,000 raw Kepler targets with the goal of not missing
-    anything real. Missing a real planet is the scientific sin — false positives
-    get caught downstream by centroid analysis, spectroscopic follow-up, and
-    peer review. The TCE optimizes for recall. Its SDE floor of 7.1 is
-    calibrated against NASA's full photometric noise model, not this pipeline's
-    BLS output.
-
-    For this app the failure mode is inverted. Results go directly to users
-    with no downstream vetting. A false positive — particularly the Kepler
-    quarterly roll systematics that produce flat, featureless BLS power spectra
-    at 60–100d periods — is an experience-breaking wrong answer. The sin here
-    is precision, not recall.
-
-    Empirical testing on 250 Kepler targets showed that the TCE checks, even
-    after tuning, left a >50% false positive rate among BLS candidates. A
-    two-stage architecture (TCE pre-filter + decision tree) was also tested and
-    performed marginally worse than the tree alone — the tree had already
-    learned the TCE-relevant boundaries from the data, calibrated to this
-    pipeline's specific output rather than to a theoretical noise model.
-
-    This implementation is not rigorous cross-validated ML. The tree was fit and
-    evaluated on the same 250-target dataset. It will not generalize without
-    retraining to TESS, to very noisy stars, or to targets outside Kepler 1–250.
-    For the purpose of making the app work well and look credible for its
-    intended targets, it is the right tool.
-
-    TREE STRUCTURE (as fit by sklearn, max_depth=4)
-    ────────────────────────────────────────────────
-    Derived quantities computed before the tree:
-        duty_cycle           = best_duration / best_period
-        duration_h           = best_duration * 24
-        n_transits_expected  = baseline / best_period
-        per_transit_snr      = snr / sqrt(n_transits_expected)
-        coverage_ratio       = n_transit_points / (best_duration / cadence)
+    fast BLS config).
 
     Raw sklearn tree:
 
@@ -154,7 +86,6 @@ def assess_reliability(
 
     # ── Decision tree ──────────────────────────────────────────────────────────
     # Implements the sklearn tree with dead branches collapsed.
-    # See docstring for full raw tree and derivation notes.
 
     if sde <= 15.12:
 

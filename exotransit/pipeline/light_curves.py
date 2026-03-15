@@ -77,6 +77,7 @@ class LightCurveData:
     raw_flux: np.ndarray
     flux_normalized: np.ndarray | None = field(default=None)
     flux_err_normalized: np.ndarray | None = field(default=None)
+    trend: np.ndarray | None = field(default=None)
 
 
 def _biweight_trend(
@@ -248,6 +249,7 @@ def fetch_light_curve(
         raw_flux=raw_flux,
         flux_normalized=flux_norm_stored,
         flux_err_normalized=flux_err_norm_stored,
+        trend=safe_trend[finite_mask],
     )
 
 
@@ -276,10 +278,8 @@ def redetrend_with_mask(lc: LightCurveData, bls_results: list) -> LightCurveData
         New light curve with refined detrending. flux_normalized and
         flux_err_normalized are preserved from the original.
     """
-    # Use getattr so stale pickled LightCurveData objects (created before
-    # flux_normalized was added) raise AttributeError → None gracefully.
-    flux_norm     = getattr(lc, 'flux_normalized', None)
-    flux_err_norm = getattr(lc, 'flux_err_normalized', None)
+    flux_norm     = lc.flux_normalized
+    flux_err_norm = lc.flux_err_normalized
 
     if flux_norm is None or flux_err_norm is None:
         logger.warning(
@@ -294,7 +294,6 @@ def redetrend_with_mask(lc: LightCurveData, bls_results: list) -> LightCurveData
         return lc
 
     # Build combined boolean mask over all detected planets.
-    # Use 3× BLS duration as the mask window — wide enough to cover ingress/egress
     # and any BLS duration underestimate.
     combined_mask = np.zeros(len(lc.time), dtype=bool)
     lc_lk = lk.LightCurve(time=lc.time, flux=lc.flux)

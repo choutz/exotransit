@@ -60,7 +60,7 @@ def query_stellar_params(target: str) -> StellarParams:
 
     Uses the pscomppars table (Planetary Systems Composite Parameters) —
     the archive's best-effort compilation of stellar properties from
-    all available literature. Falls back to ps table if not found.
+    all available literature.
 
     Parameters
     ----------
@@ -117,7 +117,7 @@ def query_stellar_params(target: str) -> StellarParams:
         name=star_name,
         radius=safe(row.get("st_rad")),
         radius_err=(
-            abs(safe(row.get("st_raderr2"), 0.0)),   # lower (negative in archive)
+            abs(safe(row.get("st_raderr2"), 0.0)),     # lower (negative in archive)
             safe(row.get("st_raderr1"), 0.0),          # upper
         ),
         mass=safe(row.get("st_mass")),

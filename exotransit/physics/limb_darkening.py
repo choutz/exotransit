@@ -66,7 +66,6 @@ def _load_table() -> pd.DataFrame:
         if not _TABLE_PATH.exists():
             raise FileNotFoundError(
                 f"Claret 2011 limb darkening table not found at {_TABLE_PATH}. "
-                f"See exotransit/physics/README for instructions."
             )
         _table = pd.read_csv(_TABLE_PATH)
         logger.info(f"Loaded Claret 2011 LD table: {len(_table)} rows")

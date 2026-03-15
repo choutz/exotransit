@@ -16,7 +16,6 @@ logger = logging.getLogger(__name__)
 
 
 def render():
-    target = st.session_state.target
     lc     = st.session_state.lc
 
     st.markdown(f"""

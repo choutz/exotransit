@@ -84,7 +84,7 @@ def find_all_planets(
             for existing in unique_results:
                 period_diff = abs(result.best_period - existing.best_period) / existing.best_period
                 if period_diff < 0.05:
-                    logger.info(f"Skipping duplicate/TTV ghost at {result.best_period:.4f}d")
+                    logger.info(f"Skipping duplicate at {result.best_period:.4f}d")
                     is_dup = True
                     break
 
