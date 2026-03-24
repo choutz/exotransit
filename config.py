@@ -54,7 +54,7 @@ LOW = PipelineConfig(
     max_planets=5,
     max_quarters=8,
     mask_width_factor=1.5,
-    supersample=2,
+    supersample=1,
 )
 
 MEDIUM = PipelineConfig(
