@@ -23,10 +23,9 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from config import CONF
 from tests.helpers import get_light_curve
-from exotransit.detection.bls import run_bls
+from exotransit.detection.multi_planet import find_all_planets
 from exotransit.mcmc.fit_mcmc import run_mcmc
 from exotransit.mcmc.helpers import _transit_model, _log_likelihood, _log_probability
-from exotransit.pipeline.light_curves import LightCurveData, redetrend_with_mask
 from exotransit.physics.stars import query_stellar_params
 from exotransit.physics.limb_darkening import get_limb_darkening
 
@@ -122,58 +121,16 @@ def run_diagnostic(kepler_num: int, truth_df: pd.DataFrame):
         t_rstar = truth_rows["Rstar_Rsun"].iloc[0]
         log.info(f"  Truth R_star (CSV): {t_rstar:.4f} R_sun  (archive returned {stellar.radius:.4f}, diff={_pct_err(stellar.radius, t_rstar)})")
 
-    # ── BLS masking loop ───────────────────────────────────────────────────────
-    log.info(f"\n  Running BLS (max_planets={conf.max_planets})...")
-    lc_work = lk.LightCurve(time=lc.time, flux=lc.flux, flux_err=lc.flux_err)
-    found_bls = []
-
-    for planet_i in range(conf.max_planets):
-        current_lc = LightCurveData(
-            time=np.asarray(lc_work.time.value),
-            flux=np.asarray(lc_work.flux.value),
-            flux_err=np.asarray(lc_work.flux_err.value),
-            mission=lc.mission,
-            target_name=lc.target_name,
-            sector_or_quarter=lc.sector_or_quarter,
-            raw_time=lc.raw_time,
-            raw_flux=lc.raw_flux,
-        )
-        bls = run_bls(
-            current_lc,
-            min_period=conf.bls.min_period,
-            max_period=conf.bls.max_period,
-            max_period_grid_points=conf.bls.max_period_grid_points,
-        )
-
-        if not bls.is_reliable:
-            log.info(f"\n  BLS stopped at planet {planet_i + 1}: not reliable")
-            for flag in bls.reliability_flags:
-                log.info(f"    {flag}")
-            break
-
-        is_dup = any(
-            abs(bls.best_period - ex.best_period) / ex.best_period < 0.05
-            for ex in found_bls
-        )
-
-        mask = lc_work.create_transit_mask(
-            period=bls.best_period,
-            transit_time=bls.best_t0,
-            duration=bls.best_duration * CONF.mask_width_factor,
-        )
-        lc_work.flux.value[mask] = np.nanmedian(lc_work.flux.value)
-
-        if is_dup:
-            log.info(f"  Skipping duplicate at {bls.best_period:.4f}d")
-            continue
-
-        found_bls.append(bls)
-
-    # ── Pass 2: re-detrend with all transit windows masked ────────────────────
-    if found_bls:
-        log.info(f"\n  Pass-2 re-detrend: masking {len(found_bls)} planet(s) and re-running biweight...")
-        lc = redetrend_with_mask(lc, found_bls)
-        log.info(f"  Refined LC: {len(lc.time)} points")
+    # ── Planet finding + Pass-2 redetrend (calls find_all_planets — identical to app) ──
+    log.info(f"\n  Running BLS + Pass-2 redetrend (max_planets={conf.max_planets})...")
+    found_bls, _, lc = find_all_planets(
+        lc,
+        max_planets=conf.max_planets,
+        min_period=conf.bls.min_period,
+        max_period=conf.bls.max_period,
+        max_period_grid_points=conf.bls.max_period_grid_points,
+    )
+    log.info(f"  Found {len(found_bls)} planet(s). Pass-2 redetrend complete: {len(lc.time)} points")
 
     for planet_i, bls in enumerate(found_bls):
         _diagnose_planet(planet_i, bls, stellar, ld, truth_rows, lc)
@@ -208,10 +165,18 @@ def _diagnose_planet(planet_i, bls, stellar, ld, truth_rows, lc):
     cadence_days  = float(np.median(np.diff(lc.time)))
     exp_time_days = cadence_days
     window        = max(bls.best_duration * CONF.mask_width_factor, 0.3)
-    transit_mask_mcmc = np.abs(bls.folded_time) < window
-    time_mcmc     = bls.folded_time[transit_mask_mcmc]
-    flux_mcmc     = bls.folded_flux[transit_mask_mcmc]
-    flux_err_mcmc = bls.folded_flux_err[transit_mask_mcmc]
+
+    # Re-fold from the pass-2 re-detrended LC — same data the production MCMC uses.
+    # bls.folded_* was computed from the pass-1 LC before redetrend_with_mask ran.
+    _lc_lk  = lk.LightCurve(time=lc.time, flux=lc.flux, flux_err=lc.flux_err)
+    _folded  = _lc_lk.fold(period=bls.best_period, epoch_time=bls.best_t0)
+    _fold_t  = np.asarray(_folded.time.value)
+    _fold_f  = np.asarray(_folded.flux.value)
+    _fold_e  = np.asarray(_folded.flux_err.value)
+    _mask    = np.abs(_fold_t) < window
+    time_mcmc     = _fold_t[_mask]
+    flux_mcmc     = _fold_f[_mask]
+    flux_err_mcmc = _fold_e[_mask]
 
     # orbital geometry
     a_au         = (stellar.mass * (bls.best_period / 365.25) ** 2) ** (1 / 3)
@@ -345,6 +310,7 @@ def _diagnose_planet(planet_i, bls, stellar, ld, truth_rows, lc):
             truth_model   = _transit_model(
                 truth_params, time_mcmc, bls.best_period,
                 ld.u1, ld.u2, stellar.mass, stellar.radius, exp_time_days,
+                CONF.supersample,
             )
             batman_depth  = 1.0 - truth_model.min()
             t_depth_ppm   = truth["Depth_ppm"]
@@ -371,7 +337,8 @@ def _diagnose_planet(planet_i, bls, stellar, ld, truth_rows, lc):
         sampler_diag = emcee.EnsembleSampler(
             n_walkers, 3, _log_probability,
             args=(time_mcmc, flux_mcmc, flux_err_mcmc, bls.best_period,
-                  ld.u1, ld.u2, stellar.mass, stellar.radius, exp_time_days, bls.snr),
+                  ld.u1, ld.u2, stellar.mass, stellar.radius, exp_time_days,
+                  bls.snr, CONF.supersample),
         )
         p0_burned, _, _ = sampler_diag.run_mcmc(p0_fresh, conf.mcmc.n_burnin, progress=True)
 
@@ -381,6 +348,7 @@ def _diagnose_planet(planet_i, bls, stellar, ld, truth_rows, lc):
         mid_model   = _transit_model(
             median_walker, time_mcmc, bls.best_period,
             ld.u1, ld.u2, stellar.mass, stellar.radius, exp_time_days,
+            CONF.supersample,
         )
         data_min    = float(flux_mcmc.min())
         mid_min     = float(mid_model.min())
@@ -399,11 +367,13 @@ def _diagnose_planet(planet_i, bls, stellar, ld, truth_rows, lc):
                 np.array([0.0, t_rp_val, t_b_val]),
                 time_mcmc, flux_mcmc, flux_err_mcmc, bls.best_period,
                 ld.u1, ld.u2, stellar.mass, stellar.radius, exp_time_days,
+                CONF.supersample,
             )
             lnL_burned = _log_likelihood(
                 median_walker,
                 time_mcmc, flux_mcmc, flux_err_mcmc, bls.best_period,
                 ld.u1, ld.u2, stellar.mass, stellar.radius, exp_time_days,
+                CONF.supersample,
             )
 
             log.info(f"\n    lnL at truth values:          {lnL_truth_burnin:.2f}")
@@ -515,6 +485,7 @@ def _diagnose_planet(planet_i, bls, stellar, ld, truth_rows, lc):
         converged_model   = _transit_model(
             converged_params, time_mcmc, bls.best_period,
             ld.u1, ld.u2, stellar.mass, stellar.radius, exp_time_days,
+            CONF.supersample,
         )
         batman_min        = float(converged_model.min())
         batman_depth      = 1.0 - batman_min
@@ -536,11 +507,13 @@ def _diagnose_planet(planet_i, bls, stellar, ld, truth_rows, lc):
                 np.array([0.0, t_rp_val, t_b_val]),
                 time_mcmc, flux_mcmc, flux_err_mcmc, bls.best_period,
                 ld.u1, ld.u2, stellar.mass, stellar.radius, exp_time_days,
+                CONF.supersample,
             )
             lnL_converged = _log_likelihood(
                 converged_params,
                 time_mcmc, flux_mcmc, flux_err_mcmc, bls.best_period,
                 ld.u1, ld.u2, stellar.mass, stellar.radius, exp_time_days,
+                CONF.supersample,
             )
 
             log.info(f"\n    lnL at truth values [rp={t_rp_val:.5f}, b={t_b_val:.4f}]: {lnL_truth_final:.2f}")
@@ -563,6 +536,7 @@ def _diagnose_planet(planet_i, bls, stellar, ld, truth_rows, lc):
         model_bins = _transit_model(
             converged_params, bin_centers, bls.best_period,
             ld.u1, ld.u2, stellar.mass, stellar.radius, exp_time_days,
+            CONF.supersample,
         )
         log.info(f"    {'phase(h)':>8}  {'data_med':>10}  {'model':>10}  {'n_pts':>6}  {'resid(ppm)':>12}")
         for bi in range(n_bins):

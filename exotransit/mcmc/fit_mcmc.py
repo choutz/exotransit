@@ -209,7 +209,8 @@ def run_mcmc(
         n_params,
         _log_probability,
         args=(time, flux, flux_err, period, u1, u2,
-              stellar_mass, stellar_radius, exp_time_days, bls.snr),
+              stellar_mass, stellar_radius, exp_time_days, bls.snr,
+              CONF.supersample),
         moves=emcee.moves.StretchMove(a=5.0)
     )
 

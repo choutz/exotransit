@@ -299,7 +299,7 @@ def plot_phase_fold(bls: BLSResult, mcmc: MCMCResult | None = None, zoom_factor:
         f_model = _transit_model(
             params, t_model, mcmc.period, mcmc.u1, mcmc.u2,
             mcmc.stellar_mass, mcmc.stellar_radius,
-            supersample=15,
+            supersample=CONF.supersample,
         )
 
         # Glow effect — wide faint line underneath for visibility over dense data
@@ -325,7 +325,7 @@ def plot_phase_fold(bls: BLSResult, mcmc: MCMCResult | None = None, zoom_factor:
         f_model_at_data = _transit_model(
             params, t, mcmc.period, mcmc.u1, mcmc.u2,
             mcmc.stellar_mass, mcmc.stellar_radius,
-            supersample=15,
+            supersample=CONF.supersample,
         )
         residuals = f - f_model_at_data
 
@@ -398,7 +398,7 @@ def plot_mcmc_spaghetti(bls: BLSResult, mcmc: MCMCResult, n_samples: int = 100, 
             f_model = _transit_model(
                 np.array([t0, rp, b]), t_model, mcmc.period, mcmc.u1, mcmc.u2,
                 mcmc.stellar_mass, mcmc.stellar_radius,
-                supersample=15,
+                supersample=CONF.supersample,
             )
             fig.add_trace(go.Scatter(
                 x=t_model, y=f_model,
@@ -415,7 +415,7 @@ def plot_mcmc_spaghetti(bls: BLSResult, mcmc: MCMCResult, n_samples: int = 100, 
     params = np.array([mcmc.t0_med, mcmc.rp_med, mcmc.b_med])
     f_best = _transit_model(params, t_model, mcmc.period, mcmc.u1, mcmc.u2,
                             mcmc.stellar_mass, mcmc.stellar_radius,
-                            supersample=15                            )
+                            supersample=CONF.supersample)
     fig.add_trace(go.Scatter(
         x=t_model, y=f_best,
         mode="lines",

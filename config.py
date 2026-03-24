@@ -37,6 +37,8 @@ class PipelineConfig:
     max_planets: int
     max_quarters: int
     mask_width_factor: float
+    supersample: int   # batman integration-time supersampling factor
+
 
 LOW = PipelineConfig(
     bls=BLSConfig(
@@ -51,7 +53,8 @@ LOW = PipelineConfig(
     ),
     max_planets=5,
     max_quarters=8,
-    mask_width_factor=1.5
+    mask_width_factor=1.5,
+    supersample=2,
 )
 
 MEDIUM = PipelineConfig(
@@ -67,7 +70,8 @@ MEDIUM = PipelineConfig(
     ),
     max_planets=6,
     max_quarters=12,
-    mask_width_factor=1.5
+    mask_width_factor=1.5,
+    supersample=2,
 )
 
 FULL = PipelineConfig(
@@ -83,7 +87,8 @@ FULL = PipelineConfig(
     ),
     max_planets=6,
     max_quarters=17,
-    mask_width_factor=1.5
+    mask_width_factor=1.5,
+    supersample=2,
 )
 
 

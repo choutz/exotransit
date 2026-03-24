@@ -46,7 +46,7 @@ def _transit_model(
     m = batman.TransitModel(
         p, time,
         supersample_factor=supersample,
-        exp_time=exp_time_days if supersample > 1 else 0.0,
+        exp_time=exp_time_days,
     )
     return m.light_curve(p)
 
@@ -77,12 +77,13 @@ def _log_likelihood(
     stellar_mass: float,
     stellar_radius: float,
     exp_time_days: float,
+    supersample: int = 1,
 ) -> float:
     """Gaussian log likelihood assuming known per-point uncertainties."""
     try:
         model_flux = _transit_model(
             params, time, period, u1, u2,
-            stellar_mass, stellar_radius, exp_time_days,
+            stellar_mass, stellar_radius, exp_time_days, supersample,
         )
     except Exception:
         return -np.inf
@@ -95,6 +96,7 @@ def _log_probability(
     params, time, flux, flux_err, period,
     u1, u2, stellar_mass, stellar_radius, exp_time_days,
     snr: float = 0.0,
+    supersample: int = 1,
 ) -> float:
     """Log posterior = log prior + log likelihood."""
     lp = _log_prior(params, snr=snr)
@@ -102,5 +104,5 @@ def _log_probability(
         return -np.inf
     return lp + _log_likelihood(
         params, time, flux, flux_err, period,
-        u1, u2, stellar_mass, stellar_radius, exp_time_days,
+        u1, u2, stellar_mass, stellar_radius, exp_time_days, supersample,
     )
