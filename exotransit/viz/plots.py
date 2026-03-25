@@ -456,7 +456,7 @@ def plot_corner(mcmc: MCMCResult) -> go.Figure:
         mcmc.radius_earth_samples,   # planet radius (R_earth)
         mcmc.inclination_samples,    # inclination (degrees)
     ]
-    names = ["Transit center (days)", "Planet radius (R⊕)", "Inclination (°)"]
+    names = ["t₀ offset from BLS epoch (days)", "Planet radius (R⊕)", "Inclination (°)"]
     n = len(names)
 
     fig = make_subplots(
